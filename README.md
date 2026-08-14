@@ -2,10 +2,10 @@
 
 Per-model cost accounting and session quota progress plugins for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh).
 
-- **`dsh-billing`** (host plugin) — prices provider-reported token usage per model from your `Config`, folds it into the `billing` session projection, and reports optional per-session quota progress. Replay-aware, config-independent fold state, deterministic micro-unit rounding.
+- **`dsh-billing`** (host plugin) — prices provider-reported token usage per provider/model into the `billing` session projection, with an optional per-session quota. Pricing priority: your `Config` > a **built-in price catalog of 1008 models across 30 providers** (generated from the pi-ai model catalog, USD per 1M tokens) > an unpriced-model warning. Replay-aware, config-independent fold state, deterministic micro-unit rounding.
 - **`dsh-client-ui-billing`** (web GUI plugin) — renders a read-only cost strip in the composer dock (order 15, after GoalBar): session cost in your currency, a quota progress bar with used/limit text, an unpriced-model warning, and the per-model breakdown in a tooltip. Renders nothing until usage exists.
 
-They follow the standard DeepSeek Harness host-projection / client-surface split (the `session-stats` / `ui-goal` precedent): the host owns pricing and the fold, the browser renders the host-computed projection.
+They follow the standard DeepSeek Harness host-projection / client-surface split (the `session-stats` / `ui-goal` precedent): the host owns pricing and the fold, the browser renders the host-computed projection. The same model id under different providers (e.g. `deepseek/deepseek-v4-flash` vs `openrouter/deepseek-v4-flash`) keeps separate buckets and prices independently.
 
 ## Install
 
@@ -55,9 +55,10 @@ Usage attribution follows the `request/header` model of the step; a later sample
 
 ## Notes
 
-- Costs are reference figures under your local price config — not an invoice or a gating input.
+- Costs are reference figures under your local/catalog price config — not an invoice or a gating input.
 - `quota` is per session; a deployment-wide budget is deferred work (see Known Limitations in each package README).
-- Tested against `@deepseek-ai/dsh` 0.1.0-rc.6 (unit, loader-composition, and client-plugin coverage; 100% per-file on both packages' source).
+- The built-in catalog (`packages/dsh-billing/src/catalog.ts`) is generated from an installed pi-ai model catalog via `node packages/dsh-billing/scripts/generate-catalog.mjs`; zero/negative-price entries (pi-ai's "unknown" markers) are excluded so they surface through the unpriced warning.
+- Tested against `@deepseek-ai/dsh` 0.1.0-rc.6 (unit + client-plugin coverage; 100% per-file on runtime source).
 
 ## License
 

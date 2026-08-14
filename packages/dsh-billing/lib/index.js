@@ -5,11 +5,14 @@
  * and every projection carrier). The plugin owns only pricing and the fold;
  * delivery is the seam's. Without a configured price a model's tokens still
  * count but cost zero and the model joins `unpricedModels`; with no
- * `quota` the view carries no quota progress.
+ * `quota` the view carries no quota progress. A model absent from both the
+ * Config and the built-in catalog (generated from the installed pi-ai model
+ * catalog) prices at zero and joins `unpricedModels` too.
  *
  * @module @deepseek-ai/dsh-billing
  */
 import z from '@deepseek-ai/schemastery';
+import { BUILTIN_CATALOG } from "./catalog.js";
 import { billingProjectionDefinition } from "./projection.js";
 /** Cordis plugin name. */
 export const name = 'billing';
@@ -60,6 +63,7 @@ export function apply(ctx, config = { models: {}, currency: 'USD' }) {
     validateConfigKeys(config);
     ctx.sessionProjections.register(billingProjectionDefinition({
         prices: config.models,
+        catalog: BUILTIN_CATALOG,
         currency: config.currency,
         quotaLimit: config.quota?.limit,
     }));

@@ -1,21 +1,24 @@
 /**
  * The `billing` projection unit: a pure fold of request headers and
- * provider-reported usage into per-model token buckets, priced by the
- * plugin's resolved config at view time. Attribution follows the request
- * header: usage samples inside one step belong to the model of the
- * `request/header` event that opened it, and a later header (a model switch
- * or resume) redirects subsequent samples.
+ * provider-reported usage into per-provider/per-model token buckets, priced
+ * at view time by the plugin's resolved config with the built-in catalog as
+ * fallback. Attribution follows the request header: usage samples inside one
+ * step belong to the provider/model of the `request/header` event that
+ * opened it, and a later header (a provider or model switch, or a resume)
+ * redirects subsequent samples.
  *
  * The fold keeps state config-independent — token buckets only — so a
- * price, currency, or quota change at runtime remounts the unit with the
- * same `stateVersion` and the persisted projection cache stays valid: the
- * old rows replay the same buckets and only the view re-prices them.
+ * price, currency, quota, or catalog change at runtime remounts the unit
+ * and the persisted projection cache stays valid: the old rows replay the
+ * same buckets and only the view re-prices them.
  *
- * @module @deepseek-ai/dsh-billing/projection
+ * @module dsh-billing/projection
  */
 import { z } from 'zod';
-/** Fallback model id for usage with no preceding `request/header` event. */
+/** Fallback identity for usage with no preceding `request/header` event. */
 export const UNKNOWN_MODEL = '(unknown)';
+/** Separator joining provider and model into one bucket key (JSON-safe, never in ids). */
+const KEY_SEPARATOR = '\u0001';
 const zeroBuckets = () => ({
     uncachedInputTokens: 0,
     outputTokens: 0,
@@ -38,19 +41,22 @@ const usageOf = (event) => event.type === 'assistant/chunk' && event.data.chunk.
     : event.type === 'assistant/message'
         ? event.data.usage
         : undefined;
+const keyOf = (provider, model) => provider + KEY_SEPARATOR + model;
 /**
- * Add `buckets` (signed) to the model's running total without mutating
+ * Add `buckets` (signed) to the bucket's running total without mutating
  * `state` — the caller spreads the result into the next state.
  */
-const addBuckets = (state, model, buckets, sign) => {
-    const previous = state.buckets[model] ?? zeroBuckets();
+const addBuckets = (state, key, provider, model, buckets, sign) => {
+    const previous = state.buckets[key] ?? { provider, model, ...zeroBuckets() };
     const next = {
+        provider,
+        model,
         uncachedInputTokens: previous.uncachedInputTokens + sign * buckets.uncachedInputTokens,
         outputTokens: previous.outputTokens + sign * buckets.outputTokens,
         cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
         cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
     };
-    return { ...state, buckets: { ...state.buckets, [model]: next } };
+    return { ...state, buckets: { ...state.buckets, [key]: next } };
 };
 /** Insert `model` into the ascending `unpriced` list when absent. */
 const noteUnpriced = (state, model) => {
@@ -64,13 +70,19 @@ const noteUnpriced = (state, model) => {
  * and schema-stable at micro-unit precision.
  */
 const roundMoney = (value) => Math.round(value * 1e6) / 1e6;
-/** Price one bucket set; an unlisted model prices at zero. */
+/** Price one bucket set; an unresolvable price prices at zero. */
 const costOf = (price, buckets) => price === undefined
     ? 0
     : (price.input * buckets.uncachedInputTokens
         + price.output * buckets.outputTokens
         + (price.cacheRead ?? 0) * buckets.cacheReadTokens
         + (price.cacheWrite ?? 0) * buckets.cacheWriteTokens) / 1e6;
+/**
+ * Resolve one bucket's price: the deployment's Config (keyed by model id)
+ * wins over the built-in catalog (keyed by provider/model); neither yields
+ * an unpriced model.
+ */
+const resolvePrice = (prices, catalog, provider, model) => prices[model] ?? catalog[provider]?.[model];
 /**
  * Billing's session projection unit.
  *
@@ -80,16 +92,7 @@ const costOf = (price, buckets) => price === undefined
  * single `last` slot relies on the session-log invariant that usage reports
  * for one turn/step are adjacent: once a later step begins, a legal log
  * never reports usage for an earlier step again.
- */ /**
-* Billing's session projection unit.
-*
-* A usage chunk provides an early sample that survives a later request
-* failure; an assistant message provides the final sample for the same
-* turn/step and replaces the earlier one instead of double counting. The
-* single `last` slot relies on the session-log invariant that usage reports
-* for one turn/step are adjacent: once a later step begins, a legal log
-* never reports usage for an earlier step again.
-*/
+ */
 export const billingProjectionDefinition = (resolved) => {
     const schema = z.object({
         currency: z.string(),
@@ -113,13 +116,14 @@ export const billingProjectionDefinition = (resolved) => {
     return {
         key: 'billing',
         schema,
-        init: () => ({ headerModel: undefined, buckets: {}, unpriced: [], last: null }),
+        init: () => ({ header: null, buckets: {}, unpriced: [], last: null }),
         apply: (state, event) => {
             if (event.type === 'request/header') {
-                const model = event.data.header.config.model;
-                if (model === state.headerModel)
+                const header = { provider: event.data.header.config.provider, model: event.data.header.config.model };
+                if (state.header !== null && state.header.provider === header.provider && state.header.model === header.model) {
                     return state;
-                return { ...state, headerModel: model };
+                }
+                return { ...state, header };
             }
             if (event.type !== 'assistant/chunk' && event.type !== 'assistant/message')
                 return state;
@@ -127,7 +131,9 @@ export const billingProjectionDefinition = (resolved) => {
             if (usage === undefined)
                 return state;
             const { turn, step } = event.data;
-            const model = state.headerModel ?? UNKNOWN_MODEL;
+            const provider = state.header?.provider ?? UNKNOWN_MODEL;
+            const model = state.header?.model ?? UNKNOWN_MODEL;
+            const key = keyOf(provider, model);
             const buckets = bucketsFrom(usage);
             const previous = state.last !== null && state.last.turn === turn && state.last.step === step
                 ? state.last
@@ -136,17 +142,38 @@ export const billingProjectionDefinition = (resolved) => {
                 return state;
             let next = state;
             if (previous !== null)
-                next = addBuckets(next, previous.model, previous.buckets, -1);
-            next = addBuckets(next, model, buckets, 1);
-            next = { ...next, last: { turn, step, model, buckets } };
-            return resolved.prices[model] === undefined ? noteUnpriced(next, model) : next;
+                next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1);
+            next = addBuckets(next, key, provider, model, buckets, 1);
+            next = { ...next, last: { turn, step, key, provider, model, buckets } };
+            return resolvePrice(resolved.prices, resolved.catalog, provider, model) === undefined
+                ? noteUnpriced(next, model)
+                : next;
         },
         view: (state) => {
-            const models = Object.keys(state.buckets).sort().map((model) => {
-                const buckets = state.buckets[model] ?? zeroBuckets();
-                const cost = roundMoney(costOf(resolved.prices[model], buckets));
-                return { model, cost, ...buckets };
-            });
+            const grouped = new Map();
+            for (const bucket of Object.values(state.buckets)) {
+                const price = resolvePrice(resolved.prices, resolved.catalog, bucket.provider, bucket.model);
+                const cost = roundMoney(costOf(price, bucket));
+                const row = grouped.get(bucket.model);
+                if (row === undefined) {
+                    grouped.set(bucket.model, {
+                        model: bucket.model,
+                        cost,
+                        uncachedInputTokens: bucket.uncachedInputTokens,
+                        outputTokens: bucket.outputTokens,
+                        cacheReadTokens: bucket.cacheReadTokens,
+                        cacheWriteTokens: bucket.cacheWriteTokens,
+                    });
+                }
+                else {
+                    row.cost = roundMoney(row.cost + cost);
+                    row.uncachedInputTokens += bucket.uncachedInputTokens;
+                    row.outputTokens += bucket.outputTokens;
+                    row.cacheReadTokens += bucket.cacheReadTokens;
+                    row.cacheWriteTokens += bucket.cacheWriteTokens;
+                }
+            }
+            const models = [...grouped.values()].sort((a, b) => a.model.localeCompare(b.model));
             const totalCost = roundMoney(models.reduce((sum, row) => sum + row.cost, 0));
             const quota = resolved.quotaLimit === undefined ? undefined : {
                 limit: resolved.quotaLimit,
@@ -163,6 +190,6 @@ export const billingProjectionDefinition = (resolved) => {
             };
             return projection;
         },
-        stateVersion: 1,
+        stateVersion: 2,
     };
 };

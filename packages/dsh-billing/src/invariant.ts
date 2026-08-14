@@ -1,5 +1,5 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-billing`.
+ * Package-owned invariant companion for `dsh-billing`.
  * @module @deepseek-ai/dsh-billing/invariant
  */
 
@@ -7,7 +7,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-billing'
+const PACKAGE_NAME = 'dsh-billing'
 
 /** Cordis companion plugin name. */
 export const name = 'billing-invariant'

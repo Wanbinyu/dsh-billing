@@ -1,5 +1,5 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-billing`.
+ * Package-owned invariant companion for `dsh-billing`.
  * @module @deepseek-ai/dsh-billing/invariant
  */
 import type { Context } from '@deepseek-ai/cordis';
