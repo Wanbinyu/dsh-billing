@@ -30,7 +30,8 @@ export const inject = ['sessionProjections']
  * Plugin config: per-model prices, the currency, and an optional per-session
  * cost cap. Cache-read/cache-write prices default to zero when omitted; an
  * empty `models` map prices every model at zero while still counting its
- * tokens.
+ * tokens. The quota limit is strictly positive because the projection reports
+ * a percentage of that limit.
  */
 export const Config: z<BillingConfig> = z.object({
   models: z.dict(z.object({
@@ -40,7 +41,9 @@ export const Config: z<BillingConfig> = z.object({
     cacheWrite: z.number().min(0).default(0),
   })),
   currency: z.string().default('USD'),
-  quota: z.object({ limit: z.number().min(0) }),
+  // Schemastery exposes an inclusive minimum; the smallest positive finite
+  // number gives this field the intended strictly-positive contract.
+  quota: z.object({ limit: z.number().min(Number.MIN_VALUE) }),
 })
 
 /** Reject stale or misspelled keys before defaults can hide them. */
@@ -59,6 +62,10 @@ function validateConfigKeys(config: BillingConfig): void {
   }
   for (const key of Object.keys(config.quota ?? {})) {
     if (key !== 'limit') throw new Error(`BillingConfig: unknown key "${key}" in quota`)
+  }
+  const quotaLimit = config.quota?.limit
+  if (quotaLimit !== undefined && !(quotaLimit > 0)) {
+    throw new Error('BillingConfig: quota.limit must be greater than 0')
   }
 }
 

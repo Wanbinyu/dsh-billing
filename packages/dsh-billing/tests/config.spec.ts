@@ -85,6 +85,12 @@ describe('billing plugin config', () => {
     expect(() => ctxApply({ ...VALID, quota: { limit: 5, window: 'monthly' } } as never))
       .toThrow(/unknown key "window" in quota/)
   })
+
+  it('rejects a zero quota limit', () => {
+    expect(() => BillingPlugin.Config({ ...VALID, quota: { limit: 0 } })).toThrow()
+    expect(() => ctxApply({ ...VALID, quota: { limit: 0 } } as never))
+      .toThrow(/quota\.limit must be greater than 0/)
+  })
 })
 
 /** Call the plugin's apply directly with a bare context to exercise key rejection without mounting. */

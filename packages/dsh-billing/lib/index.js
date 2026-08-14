@@ -32,7 +32,9 @@ export const Config = z.object({
         cacheWrite: z.number().min(0).default(0),
     })),
     currency: z.string().default('USD'),
-    quota: z.object({ limit: z.number().min(0) }),
+    // Schemastery exposes an inclusive minimum; the smallest positive finite
+    // number gives this field the intended strictly-positive contract.
+    quota: z.object({ limit: z.number().min(Number.MIN_VALUE) }),
 });
 /** Reject stale or misspelled keys before defaults can hide them. */
 function validateConfigKeys(config) {
@@ -51,6 +53,10 @@ function validateConfigKeys(config) {
     for (const key of Object.keys(config.quota ?? {})) {
         if (key !== 'limit')
             throw new Error(`BillingConfig: unknown key "${key}" in quota`);
+    }
+    const quotaLimit = config.quota?.limit;
+    if (quotaLimit !== undefined && !(quotaLimit > 0)) {
+        throw new Error('BillingConfig: quota.limit must be greater than 0');
     }
 }
 /**

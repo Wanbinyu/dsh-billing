@@ -1,11 +1,11 @@
 /**
  * The `billing` projection unit: a pure fold of request headers and
  * provider-reported usage into per-provider/per-model token buckets, priced
- * at view time by the plugin's resolved config with the built-in catalog as
- * fallback. Attribution follows the request header: usage samples inside one
- * step belong to the provider/model of the `request/header` event that
- * opened it, and a later header (a provider or model switch, or a resume)
- * redirects subsequent samples.
+ * at view time by the plugin's resolved config with the built-in USD catalog as
+ * fallback when the projection currency is USD. Attribution follows the
+ * request header: usage samples inside one step belong to the provider/model
+ * of the `request/header` event that opened it, and a later header (a provider
+ * or model switch, or a resume) redirects subsequent samples.
  *
  * The fold keeps state config-independent — token buckets only — so a
  * price, currency, quota, or catalog change at runtime remounts the unit
@@ -17,6 +17,8 @@
 import { z } from 'zod';
 /** Fallback identity for usage with no preceding `request/header` event. */
 export const UNKNOWN_MODEL = '(unknown)';
+/** Currency used by the generated built-in catalog. */
+const BUILTIN_CATALOG_CURRENCY = 'USD';
 /** Separator joining provider and model into one bucket key (JSON-safe, never in ids). */
 const KEY_SEPARATOR = '\u0001';
 const zeroBuckets = () => ({
@@ -79,10 +81,10 @@ const costOf = (price, buckets) => price === undefined
         + (price.cacheWrite ?? 0) * buckets.cacheWriteTokens) / 1e6;
 /**
  * Resolve one bucket's price: the deployment's Config (keyed by model id)
- * wins over the built-in catalog (keyed by provider/model); neither yields
- * an unpriced model.
+ * wins over the built-in USD catalog (keyed by provider/model). The catalog
+ * is disabled for other currencies so its USD figures cannot be mislabeled.
  */
-const resolvePrice = (prices, catalog, provider, model) => prices[model] ?? catalog[provider]?.[model];
+const resolvePrice = (prices, catalog, currency, provider, model) => prices[model] ?? (currency === BUILTIN_CATALOG_CURRENCY ? catalog[provider]?.[model] : undefined);
 /**
  * Billing's session projection unit.
  *
@@ -145,14 +147,14 @@ export const billingProjectionDefinition = (resolved) => {
                 next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1);
             next = addBuckets(next, key, provider, model, buckets, 1);
             next = { ...next, last: { turn, step, key, provider, model, buckets } };
-            return resolvePrice(resolved.prices, resolved.catalog, provider, model) === undefined
+            return resolvePrice(resolved.prices, resolved.catalog, resolved.currency, provider, model) === undefined
                 ? noteUnpriced(next, model)
                 : next;
         },
         view: (state) => {
             const grouped = new Map();
             for (const bucket of Object.values(state.buckets)) {
-                const price = resolvePrice(resolved.prices, resolved.catalog, bucket.provider, bucket.model);
+                const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model);
                 const cost = roundMoney(costOf(price, bucket));
                 const row = grouped.get(bucket.model);
                 if (row === undefined) {

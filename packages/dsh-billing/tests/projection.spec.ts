@@ -118,6 +118,15 @@ describe('billing projection unit (registry drive)', () => {
     expect(value.unpricedModels).toEqual([])
   })
 
+  it('does not apply the USD catalog to a non-USD projection', async () => {
+    const { ctx, session } = await harness(true, { models: {}, currency: 'CNY' })
+    header(session, 'anthropic', 'claude-haiku-4-5')
+    usageChunk(session, { inputTokens: 1_000_000, outputTokens: 100_000 }, 1, 1)
+    const value = projected(ctx, session)
+    expect(value.totalCost).toBe(0)
+    expect(value.unpricedModels).toEqual(['claude-haiku-4-5'])
+  })
+
   it('prices by provider when the same model id exists under different providers', async () => {
     const { ctx, session } = await harness(true, { models: {}, currency: 'USD' })
     header(session, 'deepseek', 'deepseek-v4-flash')

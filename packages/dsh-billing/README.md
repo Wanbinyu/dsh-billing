@@ -10,6 +10,8 @@ Host plugin for DeepSeek Harness: per-model cost accounting and session quota pr
 
 Same model id under different providers keeps separate buckets, so `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash` price independently.
 
+When `currency` is not `USD`, configure every model explicitly. The built-in catalog is not converted and is never applied to a non-USD projection.
+
 ## Configuration
 
 ```yaml
