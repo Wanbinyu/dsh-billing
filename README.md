@@ -24,18 +24,18 @@ In a dsh profile, add the rows to `cordis.patch.yml` (see [the cordis primer](ht
       config:
         models:
           deepseek-v4-flash:
-            input: 0.2        # currency per 1M uncached input tokens
-            output: 0.8       # currency per 1M output tokens
-            cacheRead: 0.05   # currency per 1M cache-read tokens (absent = 0)
-            cacheWrite: 0.1   # currency per 1M cache-write tokens (absent = 0)
-        currency: USD
+            input: 1        # currency per 1M uncached input tokens
+            output: 2       # currency per 1M output tokens
+            cacheRead: 0.02 # currency per 1M cache-read tokens (absent = 0)
+            cacheWrite: 0   # currency per 1M cache-write tokens (absent = 0)
+        currency: CNY
         quota:
-          limit: 5            # optional per-session cost cap (currency)
+          limit: 5          # optional per-session cost cap (currency)
     - id: ui-billing
       name: 'dsh-client-ui-billing'
 ```
 
-Prices are examples — set them to your contract rates. A model without an entry still has its tokens counted but prices at zero and joins `unpricedModels`, so you learn about missing prices instead of silently under-billing. Restart dsh after editing the profile.
+The example uses DeepSeek's official `deepseek-v4-flash` prices (CNY per 1M tokens: cache-hit 0.02 / cache-miss 1 / output 2) — set prices to your contract rates and keep `currency` consistent with them. DeepSeek is switching to peak/valley pricing, so rates can vary by time of day. A model without an entry still has its tokens counted but prices at zero and joins `unpricedModels`, so you learn about missing prices instead of silently under-billing. Restart dsh after editing the profile.
 
 ## Projection
 
