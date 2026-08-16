@@ -36,7 +36,7 @@ export function BillingBar({ billing, t }: BillingBarProps & PropsLocale<'billin
   if (billing.totalCost === 0 && billing.models.length === 0 && billing.quota === undefined) return null
 
   const perModel = billing.models
-    .map(row => `${row.model}: ${formatMoney(billing.currency, row.cost)}`)
+    .map(row => `${row.provider}/${row.model}: ${formatMoney(billing.currency, row.cost)}`)
     .join('\n')
 
   return (
@@ -58,6 +58,11 @@ export function BillingBar({ billing, t }: BillingBarProps & PropsLocale<'billin
               {' / '}
               {t('quota.limit')} {formatMoney(billing.currency, billing.quota.limit)}
             </span>
+          </span>
+        )}
+        {billing.quota?.estimated && (
+          <span className={css.unpriced} title={billing.unpricedModels.join('\n')}>
+            {t('quota.estimated')}
           </span>
         )}
         {billing.unpricedModels.length > 0 && (

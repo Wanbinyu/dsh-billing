@@ -1,11 +1,11 @@
 /**
  * The `billing` projection unit: a pure fold of request headers and
  * provider-reported usage into per-provider/per-model token buckets, priced
- * at view time by the plugin's resolved config with the built-in catalog as
- * fallback. Attribution follows the request header: usage samples inside one
- * step belong to the provider/model of the `request/header` event that
- * opened it, and a later header (a provider or model switch, or a resume)
- * redirects subsequent samples.
+ * at view time by the plugin's resolved config with the built-in USD catalog as
+ * fallback when the projection currency is USD. Attribution follows the
+ * request header: usage samples inside one step belong to the provider/model
+ * of the `request/header` event that opened it, and a later header (a provider
+ * or model switch, or a resume) redirects subsequent samples.
  *
  * The fold keeps state config-independent — token buckets only — so a
  * price, currency, quota, or catalog change at runtime remounts the unit
@@ -19,7 +19,7 @@ import type { BillingModelPrice } from './types.ts';
 import type { CatalogEntry } from './catalog.ts';
 /** Fallback identity for usage with no preceding `request/header` event. */
 export declare const UNKNOWN_MODEL = "(unknown)";
-/** Per-model token buckets; prices never enter the fold state. */
+/** Per-provider/model token buckets; prices never enter the fold state. */
 interface ModelBuckets {
     uncachedInputTokens: number;
     outputTokens: number;

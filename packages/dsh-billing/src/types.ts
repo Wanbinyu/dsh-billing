@@ -26,7 +26,11 @@ export interface BillingModelPrice {
 
 /** Deployment-configured billing rules (the plugin Config). */
 export interface BillingConfig {
-  /** Per-model prices keyed by provider-owned model id; a model without an entry prices at zero and joins `unpricedModels`. */
+  /**
+   * Prices keyed by `provider/model` for an exact route, or by model id as a
+   * backwards-compatible fallback for every provider. A model without an
+   * entry prices at zero and joins `unpricedModels`.
+   */
   models: Record<string, BillingModelPrice>
   /** ISO 4217 currency code the prices and the quota are denominated in. */
   currency: string
@@ -39,6 +43,8 @@ export interface BillingConfig {
 
 /** One model's accumulated accounting row in the projection view. */
 export interface BillingModelRow {
+  /** Provider route that supplied the usage. */
+  provider: string
   /** Provider-owned model id the usage was attributed to. */
   model: string
   /** Monetary cost of this model's reported usage, rounded to six decimals. */
@@ -63,6 +69,8 @@ export interface BillingQuotaProgress {
   remaining: number
   /** `used / limit` clamped to the closed unit interval. */
   percent: number
+  /** True when one or more unpriced model buckets are excluded from `used`. */
+  estimated: boolean
 }
 
 /** Whole-value `billing` projection: per-model cost accounting and optional quota progress. */
@@ -71,11 +79,11 @@ export interface BillingProjection {
   currency: string
   /** Sum of every model row's cost, rounded to six decimals. */
   totalCost: number
-  /** One row per model with any reported usage, ascending by model id. */
+  /** One row per provider/model route with any reported usage, ascending by route. */
   models: BillingModelRow[]
   /** Model ids with usage but no configured price, ascending; the `'(unknown)'` fallback model appears here too. */
   unpricedModels: string[]
-  /** Quota progress; absent unless the plugin configures `quota`. */
+  /** Quota progress; absent unless the plugin configures `quota`. `estimated` is true when pricing is incomplete. */
   quota?: BillingQuotaProgress
 }
 

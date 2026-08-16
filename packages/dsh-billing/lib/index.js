@@ -1,5 +1,5 @@
 /**
- * Function plugin registering the `billing` projection unit: per-model cost
+ * Function plugin registering the `billing` projection unit: per-provider/model cost
  * accounting from provider-reported token usage, priced by validated config,
  * served through the session-projection seam (registry snapshot, change feed,
  * and every projection carrier). The plugin owns only pricing and the fold;
@@ -19,10 +19,11 @@ export const name = 'billing';
 /** The projection registry is the plugin's whole purpose; without it the fiber stays pending. */
 export const inject = ['sessionProjections'];
 /**
- * Plugin config: per-model prices, the currency, and an optional per-session
+ * Plugin config: provider/model prices (with a model-only fallback), the currency, and an optional per-session
  * cost cap. Cache-read/cache-write prices default to zero when omitted; an
  * empty `models` map prices every model at zero while still counting its
- * tokens.
+ * tokens. The quota limit is strictly positive because the projection reports
+ * a percentage of that limit.
  */
 export const Config = z.object({
     models: z.dict(z.object({

@@ -54,7 +54,7 @@ DeepSeek's example rates use CNY per one million tokens: `0.02` for cache hits, 
 - id: billing
   config:
     models:
-      deepseek-v4-flash:
+      deepseek/deepseek-v4-flash:
         input: 1
         output: 2
         cacheRead: 0.02
@@ -64,9 +64,9 @@ DeepSeek's example rates use CNY per one million tokens: `0.02` for cache hits, 
       limit: 5
 ```
 
-When overriding the `billing` row after the bundle inserted it, Harness replaces the whole `config` block. Restate every field you want to keep.
+Exact `provider/model` keys, such as `openrouter/deepseek-v4-flash`, take precedence. A model-only key such as `deepseek-v4-flash` remains supported as a fallback for every provider. When overriding the `billing` row after the bundle inserted it, Harness replaces the whole `config` block. Restate every field you want to keep.
 
-The built-in catalog is USD-only. When using CNY or another currency, configure every model explicitly. A model without a price is still counted, but joins `unpricedModels` so missing prices are visible instead of silently under-billing.
+The built-in catalog is USD-only. When using CNY or another currency, configure every model explicitly. A model without a price is still counted, but joins `unpricedModels` and sets `quota.estimated` to `true`. Its cost is excluded rather than fabricated, so quota progress containing unpriced usage must not be treated as a complete bill.
 
 ## Projection
 
@@ -74,11 +74,11 @@ The built-in catalog is USD-only. When using CNY or another currency, configure 
 interface BillingProjection {
   currency: string
   totalCost: number
-  models: { model: string; cost: number; uncachedInputTokens: number;
+  models: { provider: string; model: string; cost: number; uncachedInputTokens: number;
             outputTokens: number; cacheReadTokens: number;
             cacheWriteTokens: number }[]
   unpricedModels: string[]
-  quota?: { limit: number; used: number; remaining: number; percent: number }
+  quota?: { limit: number; used: number; remaining: number; percent: number; estimated: boolean }
 }
 ```
 

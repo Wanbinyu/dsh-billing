@@ -1,11 +1,11 @@
 /**
  * The `billing` projection unit: mounting the plugin beside the projection
  * registry prices provider-reported usage per provider/model — the
- * deployment Config (keyed by model id) wins over the built-in catalog
+ * deployment Config (keyed by provider/model, then model id) wins over the built-in catalog
  * (keyed by provider/model), and models with neither join `unpricedModels`.
  * Attribution follows the `request/header` provider/model and a later
  * header switch redirects subsequent samples; same-model usage under
- * different providers keeps separate buckets but one view row.
+ * different providers keep separate buckets and view rows.
  */
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
@@ -85,15 +85,15 @@ const projected = (ctx: Context, session: Session): BillingProjection => {
   return value
 }
 
-const row = (model: string, cost: number, uncachedInputTokens: number, outputTokens: number, cacheReadTokens = 0, cacheWriteTokens = 0) =>
-  ({ model, cost, uncachedInputTokens, outputTokens, cacheReadTokens, cacheWriteTokens })
+const row = (provider: string, model: string, cost: number, uncachedInputTokens: number, outputTokens: number, cacheReadTokens = 0, cacheWriteTokens = 0) =>
+  ({ provider, model, cost, uncachedInputTokens, outputTokens, cacheReadTokens, cacheWriteTokens })
 
 describe('billing projection unit (registry drive)', () => {
   it('serves an empty projection with the configured currency on the empty log', async () => {
     const { ctx, session } = await harness(true)
     expect(projected(ctx, session)).toEqual({
       currency: 'USD', totalCost: 0, models: [], unpricedModels: [],
-      quota: { limit: 1, used: 0, remaining: 1, percent: 0 },
+      quota: { limit: 1, used: 0, remaining: 1, percent: 0, estimated: false },
     })
   })
 
@@ -103,9 +103,9 @@ describe('billing projection unit (registry drive)', () => {
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 500_000, cacheReadTokens: 1_000_000 }, 1, 1)
     const value = projected(ctx, session)
     expect(value.totalCost).toBe(0.65)
-    expect(value.models).toEqual([row('deepseek-v4-flash', 0.65, 1_000_000, 500_000, 1_000_000)])
+    expect(value.models).toEqual([row('mock', 'deepseek-v4-flash', 0.65, 1_000_000, 500_000, 1_000_000)])
     expect(value.unpricedModels).toEqual([])
-    expect(value.quota).toEqual({ limit: 1, used: 0.65, remaining: 0.35, percent: 0.65 })
+    expect(value.quota).toEqual({ limit: 1, used: 0.65, remaining: 0.35, percent: 0.65, estimated: false })
   })
 
   it('falls back to the built-in catalog when the Config has no price for the model', async () => {
@@ -136,7 +136,28 @@ describe('billing projection unit (registry drive)', () => {
     const value = projected(ctx, session)
     // Catalog prices deepseek at 0.25/1M and openrouter at 0.3/1M for the same model id
     expect(value.totalCost).toBe(0.55)
-    expect(value.models).toEqual([row('deepseek-v4-flash', 0.55, 2_000_000, 0)])
+    expect(value.models).toEqual([
+      row('deepseek', 'deepseek-v4-flash', 0.25, 1_000_000, 0),
+      row('openrouter', 'deepseek-v4-flash', 0.3, 1_000_000, 0),
+    ])
+  })
+
+  it('prefers an exact provider/model price over the legacy model fallback', async () => {
+    const { ctx, session } = await harness(true, {
+      models: {
+        'deepseek-v4-flash': { input: 0.9, output: 0.9 },
+        'openrouter/deepseek-v4-flash': { input: 0.4, output: 0.4 },
+      },
+      currency: 'USD',
+    })
+    header(session, 'deepseek', 'deepseek-v4-flash')
+    usageChunk(session, { inputTokens: 1_000_000, outputTokens: 0 }, 1, 1)
+    header(session, 'openrouter', 'deepseek-v4-flash')
+    usageChunk(session, { inputTokens: 1_000_000, outputTokens: 0 }, 1, 2)
+    expect(projected(ctx, session).models).toEqual([
+      row('deepseek', 'deepseek-v4-flash', 0.9, 1_000_000, 0),
+      row('openrouter', 'deepseek-v4-flash', 0.4, 1_000_000, 0),
+    ])
   })
 
   it('redirects attribution when a later header switches provider or model', async () => {
@@ -147,8 +168,8 @@ describe('billing projection unit (registry drive)', () => {
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 0 }, 1, 2)
     const value = projected(ctx, session)
     expect(value.models).toEqual([
-      row('claude-haiku-4-5', 1, 1_000_000, 0),
-      row('deepseek-v4-flash', 0.3, 1_000_000, 0),
+      row('anthropic', 'claude-haiku-4-5', 1, 1_000_000, 0),
+      row('openrouter', 'deepseek-v4-flash', 0.3, 1_000_000, 0),
     ])
   })
 
@@ -158,7 +179,7 @@ describe('billing projection unit (registry drive)', () => {
     header(session, 'mock', 'deepseek-v4-flash')
     expect(projected(ctx, session)).toEqual({
       currency: 'USD', totalCost: 0, models: [], unpricedModels: [],
-      quota: { limit: 1, used: 0, remaining: 1, percent: 0 },
+      quota: { limit: 1, used: 0, remaining: 1, percent: 0, estimated: false },
     })
   })
 
@@ -168,7 +189,7 @@ describe('billing projection unit (registry drive)', () => {
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 100 }, 1, 1)
     finalUsage(session, { inputTokens: 2_000_000, outputTokens: 100 }, 1, 1)
     const value = projected(ctx, session)
-    expect(value.models).toEqual([row('deepseek-v4-flash', 0.40008, 2_000_000, 100)])
+    expect(value.models).toEqual([row('mock', 'deepseek-v4-flash', 0.40008, 2_000_000, 100)])
   })
 
   it('leaves the state untouched when a repeated sample equals the previous one', async () => {
@@ -185,7 +206,7 @@ describe('billing projection unit (registry drive)', () => {
     header(session, 'mock', 'deepseek-v4-flash')
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 10 }, 1, 1)
     usageChunk(session, { inputTokens: 500_000, outputTokens: 20 }, 1, 1)
-    expect(projected(ctx, session).models).toEqual([row('deepseek-v4-flash', 0.100016, 500_000, 20)])
+    expect(projected(ctx, session).models).toEqual([row('mock', 'deepseek-v4-flash', 0.100016, 500_000, 20)])
   })
 
   it('counts an unpriced model at zero cost and lists it as unpriced', async () => {
@@ -194,8 +215,9 @@ describe('billing projection unit (registry drive)', () => {
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 1_000_000 }, 1, 1)
     const value = projected(ctx, session)
     expect(value.totalCost).toBe(0)
-    expect(value.models).toEqual([row('not-listed', 0, 1_000_000, 1_000_000)])
+    expect(value.models).toEqual([row('mock', 'not-listed', 0, 1_000_000, 1_000_000)])
     expect(value.unpricedModels).toEqual(['not-listed'])
+    expect(value.quota?.estimated).toBe(true)
   })
 
   it('lists multiple unpriced models ascending without duplicates', async () => {
@@ -213,7 +235,7 @@ describe('billing projection unit (registry drive)', () => {
     const { ctx, session } = await harness(true)
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 0 }, 1, 1)
     const value = projected(ctx, session)
-    expect(value.models).toEqual([row(UNKNOWN_MODEL, 0, 1_000_000, 0)])
+    expect(value.models).toEqual([row(UNKNOWN_MODEL, UNKNOWN_MODEL, 0, 1_000_000, 0)])
     expect(value.unpricedModels).toEqual([UNKNOWN_MODEL])
   })
 
@@ -228,7 +250,7 @@ describe('billing projection unit (registry drive)', () => {
     const { ctx, session } = await harness(true, { models: PRICES, currency: 'USD', quota: { limit: 0.1 } })
     header(session, 'mock', 'deepseek-v4-flash')
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 0 }, 1, 1)
-    expect(projected(ctx, session).quota).toEqual({ limit: 0.1, used: 0.2, remaining: 0, percent: 1 })
+    expect(projected(ctx, session).quota).toEqual({ limit: 0.1, used: 0.2, remaining: 0, percent: 1, estimated: false })
   })
 
   it('omits quota progress when the plugin configures none', async () => {

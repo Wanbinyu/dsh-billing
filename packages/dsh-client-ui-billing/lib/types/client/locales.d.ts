@@ -7,6 +7,7 @@ export declare const zh: {
     label: string;
     'quota.used': string;
     'quota.limit': string;
+    'quota.estimated': string;
     unpriced: string;
     'aria.bar': string;
 };
@@ -17,6 +18,7 @@ export declare const en: {
     label: string;
     'quota.used': string;
     'quota.limit': string;
+    'quota.estimated': string;
     unpriced: string;
     'aria.bar': string;
 };

@@ -54,7 +54,7 @@ DeepSeek 官方示例价格使用 CNY 每 100 万 token：缓存命中 `0.02`、
 - id: billing
   config:
     models:
-      deepseek-v4-flash:
+      deepseek/deepseek-v4-flash:
         input: 1
         output: 2
         cacheRead: 0.02
@@ -64,9 +64,9 @@ DeepSeek 官方示例价格使用 CNY 每 100 万 token：缓存命中 `0.02`、
       limit: 5
 ```
 
-如果在 bundle 已插入后修改 `billing` 行，Harness 的 patch 会替换整段 `config`，因此需要保留所有希望继续使用的配置字段。
+价格键优先使用精确的 `provider/model`，例如 `openrouter/deepseek-v4-flash`；只写模型 ID（例如 `deepseek-v4-flash`）仍然有效，并作为所有 provider 的兼容回退。如果在 bundle 已插入后修改 `billing` 行，Harness 的 patch 会替换整段 `config`，因此需要保留所有希望继续使用的配置字段。
 
-内置目录只使用 USD。使用 CNY 或其他货币时，请为每个模型显式配置价格；没有价格的模型仍会统计 token，但会进入 `unpricedModels`，避免静默少算费用。
+内置目录只使用 USD。使用 CNY 或其他货币时，请为每个模型显式配置价格；没有价格的模型仍会统计 token，但会进入 `unpricedModels`。它们不会伪造费用，`quota.estimated` 会变为 `true`，表示额度进度只包含已知价格，不能当作完整账单。
 
 ## Projection
 
@@ -74,11 +74,11 @@ DeepSeek 官方示例价格使用 CNY 每 100 万 token：缓存命中 `0.02`、
 interface BillingProjection {
   currency: string
   totalCost: number
-  models: { model: string; cost: number; uncachedInputTokens: number;
+  models: { provider: string; model: string; cost: number; uncachedInputTokens: number;
             outputTokens: number; cacheReadTokens: number;
             cacheWriteTokens: number }[]
   unpricedModels: string[]
-  quota?: { limit: number; used: number; remaining: number; percent: number }
+  quota?: { limit: number; used: number; remaining: number; percent: number; estimated: boolean }
 }
 ```
 

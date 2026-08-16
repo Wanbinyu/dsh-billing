@@ -10,6 +10,7 @@ export const zh = {
   'label': '本次会话费用',
   'quota.used': '已用',
   'quota.limit': '额度',
+  'quota.estimated': '未定价费用未计入',
   'unpriced': '未定价模型',
   'aria.bar': '本次会话费用与额度进度',
 } satisfies Record<string, string>
@@ -22,6 +23,7 @@ export const en = {
   'label': 'Session cost',
   'quota.used': 'Used',
   'quota.limit': 'Limit',
+  'quota.estimated': 'Unpriced usage excluded',
   'unpriced': 'Unpriced models',
   'aria.bar': 'Session cost and quota progress',
 } satisfies Record<BillingKey, string>

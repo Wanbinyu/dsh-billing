@@ -31,7 +31,7 @@ const BUILTIN_CATALOG_CURRENCY = 'USD'
 /** Separator joining provider and model into one bucket key (JSON-safe, never in ids). */
 const KEY_SEPARATOR = '\u0001'
 
-/** Per-model token buckets; prices never enter the fold state. */
+/** Per-provider/model token buckets; prices never enter the fold state. */
 interface ModelBuckets {
   uncachedInputTokens: number
   outputTokens: number
@@ -134,7 +134,7 @@ const noteUnpriced = (state: BillingState, model: string): BillingState => {
  */
 const roundMoney = (value: number): number => Math.round(value * 1e6) / 1e6
 
-/** Price one bucket set; an unresolvable price prices at zero. */
+/** Price one bucket set; an unresolvable price contributes no known cost. */
 const costOf = (price: BillingModelPrice | CatalogEntry | undefined, buckets: ModelBuckets): number =>
   price === undefined
     ? 0
@@ -144,9 +144,9 @@ const costOf = (price: BillingModelPrice | CatalogEntry | undefined, buckets: Mo
       + (price.cacheWrite ?? 0) * buckets.cacheWriteTokens) / 1e6
 
 /**
- * Resolve one bucket's price: the deployment's Config (keyed by model id)
- * wins over the built-in USD catalog (keyed by provider/model). The catalog
- * is disabled for other currencies so its USD figures cannot be mislabeled.
+ * Resolve one bucket's price. A provider/model override wins first, then the
+ * legacy model-only override, then the built-in USD catalog. The catalog is
+ * disabled for other currencies so its USD figures cannot be mislabeled.
  */
 const resolvePrice = (
   prices: Record<string, BillingModelPrice>,
@@ -155,7 +155,9 @@ const resolvePrice = (
   provider: string,
   model: string,
 ): BillingModelPrice | CatalogEntry | undefined =>
-  prices[model] ?? (currency === BUILTIN_CATALOG_CURRENCY ? catalog[provider]?.[model] : undefined)
+  prices[`${provider}/${model}`]
+  ?? prices[model]
+  ?? (currency === BUILTIN_CATALOG_CURRENCY ? catalog[provider]?.[model] : undefined)
 
 /**
  * Billing's session projection unit.
@@ -179,6 +181,7 @@ export const billingProjectionDefinition = (
     currency: z.string(),
     totalCost: z.number().nonnegative(),
     models: z.array(z.object({
+      provider: z.string(),
       model: z.string(),
       cost: z.number().nonnegative(),
       uncachedInputTokens: z.number().int().nonnegative(),
@@ -192,6 +195,7 @@ export const billingProjectionDefinition = (
       used: z.number().nonnegative(),
       remaining: z.number().nonnegative(),
       percent: z.number().min(0).max(1),
+      estimated: z.boolean(),
     }).strict().optional(),
   }).strict() as unknown as z.ZodType<BillingProjection>
 
@@ -231,13 +235,15 @@ export const billingProjectionDefinition = (
         : next
     },
     view: (state) => {
-      const grouped = new Map<string, { model: string; cost: number } & ModelBuckets>()
+      const grouped = new Map<string, { provider: string; model: string; cost: number } & ModelBuckets>()
       for (const bucket of Object.values(state.buckets)) {
         const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model)
         const cost = roundMoney(costOf(price, bucket))
-        const row = grouped.get(bucket.model)
+        const key = keyOf(bucket.provider, bucket.model)
+        const row = grouped.get(key)
         if (row === undefined) {
-          grouped.set(bucket.model, {
+          grouped.set(key, {
+            provider: bucket.provider,
             model: bucket.model,
             cost,
             uncachedInputTokens: bucket.uncachedInputTokens,
@@ -253,13 +259,17 @@ export const billingProjectionDefinition = (
           row.cacheWriteTokens += bucket.cacheWriteTokens
         }
       }
-      const models = [...grouped.values()].sort((a, b) => a.model.localeCompare(b.model))
+      const models = [...grouped.values()].sort((a, b) => {
+        const providerOrder = a.provider.localeCompare(b.provider)
+        return providerOrder !== 0 ? providerOrder : a.model.localeCompare(b.model)
+      })
       const totalCost = roundMoney(models.reduce((sum, row) => sum + row.cost, 0))
       const quota = resolved.quotaLimit === undefined ? undefined : {
         limit: resolved.quotaLimit,
         used: totalCost,
         remaining: Math.max(0, resolved.quotaLimit - totalCost),
         percent: Math.min(1, totalCost / resolved.quotaLimit),
+        estimated: state.unpriced.length > 0,
       }
       const projection: BillingProjection = {
         currency: resolved.currency,
@@ -270,6 +280,6 @@ export const billingProjectionDefinition = (
       }
       return projection
     },
-    stateVersion: 2,
+    stateVersion: 3,
   }
 }
