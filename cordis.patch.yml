@@ -1,0 +1,6 @@
+- insert:
+    - id: billing
+      name: dsh-billing
+      config: {}
+    - id: ui-billing
+      name: dsh-client-ui-billing

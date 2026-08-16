@@ -1,0 +1,29 @@
+{
+  "name": "dsh-billing-community-bundle",
+  "version": "0.3.0",
+  "description": "Installable DeepSeek Harness bundle for the dsh-billing host projection and client UI",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "packages/dsh-billing/lib",
+    "packages/dsh-billing/package.json",
+    "packages/dsh-client-ui-billing/lib",
+    "packages/dsh-client-ui-billing/package.json",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "dsh-billing": "file:packages/dsh-billing",
+    "dsh-client-ui-billing": "file:packages/dsh-client-ui-billing"
+  }
+}

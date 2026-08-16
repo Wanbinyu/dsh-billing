@@ -1,0 +1,109 @@
+# dsh-billing
+
+[简体中文](README.md) | [English](README.en.md)
+
+Session billing and quota plugins for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+
+> [!NOTE]
+> This is an independent community project. It is not part of the official DeepSeek Harness distribution. Costs are local reference values, not invoices, and do not automatically block model calls.
+
+## Components
+
+| Package | Purpose |
+| --- | --- |
+| `dsh-billing` | Prices provider/model token usage, produces the `billing` session projection, and supports a per-session quota. |
+| `dsh-client-ui-billing` | Shows cost, quota progress, unpriced-model warnings, and model details in the Web composer dock. |
+| `dsh-billing-community-bundle` | Combines both packages and a `cordis.patch.yml` into an installable DSH bundle. |
+
+The host owns pricing and the projection; the browser renders the host-computed projection. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
+
+## Install As A Bundle
+
+The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
+
+```sh
+dsh plugin --profile web add github:Wanbinyu/dsh-billing
+```
+
+Restart dsh after installation. The bundle enables the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
+
+## Manual Installation
+
+When the host project needs to own the composition layer, install both packages:
+
+```sh
+npm install ./packages/dsh-billing ./packages/dsh-client-ui-billing
+```
+
+Then add this to the profile's `cordis.patch.yml`:
+
+```yaml
+- insert:
+    - id: billing
+      name: dsh-billing
+      config: {}
+    - id: ui-billing
+      name: dsh-client-ui-billing
+```
+
+## Configure Pricing And Quota
+
+DeepSeek's example rates use CNY per one million tokens: `0.02` for cache hits, `1` for uncached input, and `2` for output. Configure your contract rates; peak/valley pricing may change over time.
+
+```yaml
+- id: billing
+  config:
+    models:
+      deepseek-v4-flash:
+        input: 1
+        output: 2
+        cacheRead: 0.02
+        cacheWrite: 0
+    currency: CNY
+    quota:
+      limit: 5
+```
+
+When overriding the `billing` row after the bundle inserted it, Harness replaces the whole `config` block. Restate every field you want to keep.
+
+The built-in catalog is USD-only. When using CNY or another currency, configure every model explicitly. A model without a price is still counted, but joins `unpricedModels` so missing prices are visible instead of silently under-billing.
+
+## Projection
+
+```ts
+interface BillingProjection {
+  currency: string
+  totalCost: number
+  models: { model: string; cost: number; uncachedInputTokens: number;
+            outputTokens: number; cacheReadTokens: number;
+            cacheWriteTokens: number }[]
+  unpricedModels: string[]
+  quota?: { limit: number; used: number; remaining: number; percent: number }
+}
+```
+
+Usage follows the `request/header` model for step attribution. A later sample for the same `(turn, step)` replaces the earlier sample to avoid double counting; usage without a preceding header falls into a reserved `(unknown)` bucket.
+
+## Development And Verification
+
+Host configuration and projection behavior have unit coverage. Browser responsive layout and real Web composition tests remain future work. The built-in catalog is generated from the pi-ai model catalog with:
+
+```sh
+node packages/dsh-billing/scripts/generate-catalog.mjs
+```
+
+## Current Limitations
+
+- Costs are local reference values, not invoices or a hard gating input.
+- Quota is currently per session; deployment-wide budgets are deferred.
+- The current target is DeepSeek Harness `0.1.0-rc.x`.
+
+## Links
+
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+- [GitHub repository](https://github.com/Wanbinyu/dsh-billing)
+- [简体中文说明](README.md)
+
+## License
+
+MIT.
