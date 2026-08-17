@@ -15,7 +15,7 @@
 | `dsh-client-ui-billing` | 在 Web composer dock 显示本轮/会话费用、额度进度、未定价模型提示和模型明细。 |
 | `dsh-billing-community-bundle` | 将上面两个包和 `cordis.patch.yml` 组合成可安装的 DSH bundle。 |
 
-host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
+host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
 ## 作为 bundle 安装
 
@@ -25,7 +25,7 @@ host 侧负责计价和 projection，浏览器侧从 host 已计算的 projectio
 dsh plugin --profile web add github:Wanbinyu/dsh-billing
 ```
 
-安装后重启 dsh。bundle 默认启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。
+安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。
 
 ## 手动安装
 

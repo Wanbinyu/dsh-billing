@@ -15,7 +15,7 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 | `dsh-client-ui-billing` | Shows latest-turn/session cost, quota progress, unpriced-model warnings, and model details in the Web composer dock. |
 | `dsh-billing-community-bundle` | Combines both packages and a `cordis.patch.yml` into an installable DSH bundle. |
 
-The host owns pricing and the projection; the browser renders the host-computed projection. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
+The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
 ## Install As A Bundle
 
@@ -25,7 +25,7 @@ The repository root provides a bundle declaration and both runtime packages. Add
 dsh plugin --profile web add github:Wanbinyu/dsh-billing
 ```
 
-Restart dsh after installation. The bundle enables the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
+Restart dsh after installation. One `billing` composition entry enables both the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
 
 ## Manual Installation
 

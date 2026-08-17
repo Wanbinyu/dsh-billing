@@ -1,6 +1,4 @@
 - insert:
     - id: billing
-      name: dsh-billing
+      name: dsh-billing-community-bundle
       config: {}
-    - id: ui-billing
-      name: dsh-client-ui-billing

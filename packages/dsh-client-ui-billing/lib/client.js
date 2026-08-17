@@ -19,15 +19,15 @@ var BillingBar_module_css_default = {
 	"costs": "Xl6qUa_costs",
 	"dock": "Xl6qUa_dock",
 	"glyph": "Xl6qUa_glyph",
-	"quotaTrack": "Xl6qUa_quotaTrack",
-	"quotaText": "Xl6qUa_quotaText",
 	"label": "Xl6qUa_label",
-	"quotaFill": "Xl6qUa_quotaFill",
+	"metric": "Xl6qUa_metric",
 	"metricLabel": "Xl6qUa_metricLabel",
-	"unpriced": "Xl6qUa_unpriced",
-	"quotaAlert": "Xl6qUa_quotaAlert",
 	"quota": "Xl6qUa_quota",
-	"metric": "Xl6qUa_metric"
+	"quotaAlert": "Xl6qUa_quotaAlert",
+	"quotaFill": "Xl6qUa_quotaFill",
+	"quotaText": "Xl6qUa_quotaText",
+	"quotaTrack": "Xl6qUa_quotaTrack",
+	"unpriced": "Xl6qUa_unpriced"
 };
 
 //#endregion

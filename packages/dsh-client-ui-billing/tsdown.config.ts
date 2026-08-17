@@ -41,7 +41,8 @@ const cssPlugin = {
       minify: true,
     })
     const classMap: Record<string, string> = {}
-    for (const [local, value] of Object.entries(cssExports ?? {})) classMap[local] = value.name
+    const entries = Object.entries(cssExports ?? {}).sort(([left], [right]) => left.localeCompare(right))
+    for (const [local, value] of entries) classMap[local] = value.name
     return [
       `const css = ${JSON.stringify(code.toString())};`,
       `const tagId = ${JSON.stringify(`${PLUGIN_ID}/${basename(file)}`)};`,
