@@ -11,6 +11,7 @@ import type { BillingProjection } from 'dsh-billing/client'
 import { IconDataOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './BillingBar.module.css'
+import { quotaTone } from './quota.js'
 
 export interface BillingBarProps {
   /** The session's projected billing value; undefined = capability absent or loading, null = not registered. */
@@ -38,18 +39,43 @@ export function BillingBar({ billing, t }: BillingBarProps & PropsLocale<'billin
   const perModel = billing.models
     .map(row => `${row.provider}/${row.model}: ${formatMoney(billing.currency, row.cost)}`)
     .join('\n')
+  const latest = billing.latestTurn
+  const details = latest === undefined
+    ? perModel
+    : [
+        `${t('turn')} ${latest.turn}: ${formatMoney(billing.currency, latest.cost)}`,
+        `${t('tokens.input')}: ${latest.uncachedInputTokens.toLocaleString()}`,
+        `${t('tokens.output')}: ${latest.outputTokens.toLocaleString()}`,
+        `${t('tokens.cacheRead')}: ${latest.cacheReadTokens.toLocaleString()}`,
+        `${t('tokens.cacheWrite')}: ${latest.cacheWriteTokens.toLocaleString()}`,
+        perModel,
+      ].filter(Boolean).join('\n')
+  const tone = billing.quota === undefined ? 'normal' : quotaTone(billing.quota.percent)
+  const quotaPercent = billing.quota === undefined ? 0 : Math.round(billing.quota.percent * 100)
 
   return (
-    <div className={css.dock} data-billing-bar title={perModel}>
+    <div className={css.dock} data-billing-bar title={details}>
       <div className={css.bar} role="status" aria-label={t('aria.bar')}>
         <span className={css.glyph}><IconDataOutline16 size={14} /></span>
         <span className={css.label}>{t('label')}</span>
-        <span className={css.total}>{formatMoney(billing.currency, billing.totalCost)}</span>
+        <span className={css.costs}>
+          {latest !== undefined && (
+            <span className={css.metric}>
+              <span className={css.metricLabel}>{t('turn')}</span>
+              {formatMoney(billing.currency, latest.cost)}
+            </span>
+          )}
+          <span className={css.metric}>
+            <span className={css.metricLabel}>{t('session')}</span>
+            {formatMoney(billing.currency, billing.totalCost)}
+          </span>
+        </span>
         {billing.quota !== undefined && (
           <span className={css.quota}>
             <span className={css.quotaTrack}>
               <span
                 className={css.quotaFill}
+                data-tone={tone}
                 style={{ width: `${Math.round(billing.quota.percent * 100)}%` }}
               />
             </span>
@@ -60,12 +86,17 @@ export function BillingBar({ billing, t }: BillingBarProps & PropsLocale<'billin
             </span>
           </span>
         )}
+        {billing.quota !== undefined && tone !== 'normal' && (
+          <span className={css.quotaAlert} data-tone={tone}>
+            {tone === 'danger' ? t('quota.full') : t('quota.percent')} {quotaPercent}%
+          </span>
+        )}
         {billing.quota?.estimated && (
           <span className={css.unpriced} title={billing.unpricedModels.join('\n')}>
             {t('quota.estimated')}
           </span>
         )}
-        {billing.unpricedModels.length > 0 && (
+        {billing.unpricedModels.length > 0 && !billing.quota?.estimated && (
           <span className={css.unpriced} title={billing.unpricedModels.join('\n')}>
             {t('unpriced')}: {billing.unpricedModels.length}
           </span>

@@ -12,7 +12,7 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 | Package | Purpose |
 | --- | --- |
 | `dsh-billing` | Prices provider/model token usage, produces the `billing` session projection, and supports a per-session quota. |
-| `dsh-client-ui-billing` | Shows cost, quota progress, unpriced-model warnings, and model details in the Web composer dock. |
+| `dsh-client-ui-billing` | Shows latest-turn/session cost, quota progress, unpriced-model warnings, and model details in the Web composer dock. |
 | `dsh-billing-community-bundle` | Combines both packages and a `cordis.patch.yml` into an installable DSH bundle. |
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
@@ -78,15 +78,27 @@ interface BillingProjection {
             outputTokens: number; cacheReadTokens: number;
             cacheWriteTokens: number }[]
   unpricedModels: string[]
+  latestTurn?: { turn: number; cost: number; uncachedInputTokens: number;
+                 outputTokens: number; cacheReadTokens: number;
+                 cacheWriteTokens: number; unpricedModels: string[] }
   quota?: { limit: number; used: number; remaining: number; percent: number; estimated: boolean }
 }
 ```
 
-Usage follows the `request/header` model for step attribution. A later sample for the same `(turn, step)` replaces the earlier sample to avoid double counting; usage without a preceding header falls into a reserved `(unknown)` bucket.
+Usage follows the `request/header` model for step attribution. A later sample for the same `(turn, step)` replaces the earlier sample in both the session total and latest-turn summary to avoid double counting; usage without a preceding header falls into a reserved `(unknown)` bucket. `latestTurn` appears after the first usage sample and lets clients render cost and token details for the most recent turn.
+
+The Web strip shows both Turn and Session amounts. Hovering reveals the latest turn's input, output, cache-read, and cache-write tokens plus per-model costs. Quota feedback becomes progressively stronger at 50%, 80%, and 100% usage.
 
 ## Development And Verification
 
-Host configuration and projection behavior have unit coverage. Browser responsive layout and real Web composition tests remain future work. The built-in catalog is generated from the pi-ai model catalog with:
+Host configuration, projection replacement, and quota states have unit coverage. Real Web composition testing remains future work. Run the complete verification with:
+
+```sh
+npm run build
+npm run verify
+```
+
+The built-in catalog is generated from the pi-ai model catalog with:
 
 ```sh
 node packages/dsh-billing/scripts/generate-catalog.mjs

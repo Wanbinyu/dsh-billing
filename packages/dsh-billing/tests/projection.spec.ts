@@ -206,7 +206,37 @@ describe('billing projection unit (registry drive)', () => {
     header(session, 'mock', 'deepseek-v4-flash')
     usageChunk(session, { inputTokens: 1_000_000, outputTokens: 10 }, 1, 1)
     usageChunk(session, { inputTokens: 500_000, outputTokens: 20 }, 1, 1)
-    expect(projected(ctx, session).models).toEqual([row('mock', 'deepseek-v4-flash', 0.100016, 500_000, 20)])
+    const value = projected(ctx, session)
+    expect(value.models).toEqual([row('mock', 'deepseek-v4-flash', 0.100016, 500_000, 20)])
+    expect(value.latestTurn).toEqual({
+      turn: 1,
+      cost: 0.100016,
+      uncachedInputTokens: 500_000,
+      outputTokens: 20,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      unpricedModels: [],
+    })
+  })
+
+  it('serves the latest turn separately from the whole-session total', async () => {
+    const { ctx, session } = await harness(true)
+    header(session, 'mock', 'deepseek-v4-flash')
+    usageChunk(session, { inputTokens: 1_000_000, outputTokens: 100_000 }, 1, 1)
+    usageChunk(session, { inputTokens: 500_000, outputTokens: 50_000, cacheReadTokens: 20_000 }, 2, 1)
+    usageChunk(session, { inputTokens: 250_000, outputTokens: 25_000, cacheReadTokens: 10_000 }, 2, 2)
+
+    const value = projected(ctx, session)
+    expect(value.totalCost).toBe(0.4915)
+    expect(value.latestTurn).toEqual({
+      turn: 2,
+      cost: 0.2115,
+      uncachedInputTokens: 750_000,
+      outputTokens: 75_000,
+      cacheReadTokens: 30_000,
+      cacheWriteTokens: 0,
+      unpricedModels: [],
+    })
   })
 
   it('counts an unpriced model at zero cost and lists it as unpriced', async () => {
@@ -217,6 +247,7 @@ describe('billing projection unit (registry drive)', () => {
     expect(value.totalCost).toBe(0)
     expect(value.models).toEqual([row('mock', 'not-listed', 0, 1_000_000, 1_000_000)])
     expect(value.unpricedModels).toEqual(['not-listed'])
+    expect(value.latestTurn?.unpricedModels).toEqual(['not-listed'])
     expect(value.quota?.estimated).toBe(true)
   })
 

@@ -55,6 +55,12 @@ interface UsageSample {
   buckets: ModelBuckets
 }
 
+/** Token buckets for the newest turn only, used by the compact per-turn UI. */
+interface LatestTurnState {
+  turn: number
+  buckets: Record<string, Bucket>
+}
+
 /** Fold state (plain JSON per the unit contract). */
 interface BillingState {
   /** Provider/model of the newest `request/header`; null before the first. */
@@ -65,6 +71,8 @@ interface BillingState {
   unpriced: string[]
   /** Newest usage sample; null before the first. */
   last: UsageSample | null
+  /** Newest turn with a usage sample; null before the first. */
+  latestTurn: LatestTurnState | null
 }
 
 const zeroBuckets = (): ModelBuckets => ({
@@ -119,6 +127,34 @@ const addBuckets = (
     cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
   }
   return { ...state, buckets: { ...state.buckets, [key]: next } }
+}
+
+/** Add signed buckets to the newest-turn view, resetting it when a later turn starts. */
+const addLatestTurnBuckets = (
+  state: BillingState,
+  turn: number,
+  key: string,
+  provider: string,
+  model: string,
+  buckets: ModelBuckets,
+  sign: 1 | -1,
+): BillingState => {
+  const current = state.latestTurn?.turn === turn
+    ? state.latestTurn
+    : { turn, buckets: {} }
+  const previous = current.buckets[key] ?? { provider, model, ...zeroBuckets() }
+  const next: Bucket = {
+    provider,
+    model,
+    uncachedInputTokens: previous.uncachedInputTokens + sign * buckets.uncachedInputTokens,
+    outputTokens: previous.outputTokens + sign * buckets.outputTokens,
+    cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
+    cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
+  }
+  return {
+    ...state,
+    latestTurn: { turn, buckets: { ...current.buckets, [key]: next } },
+  }
 }
 
 /** Insert `model` into the ascending `unpriced` list when absent. */
@@ -190,6 +226,15 @@ export const billingProjectionDefinition = (
       cacheWriteTokens: z.number().int().nonnegative(),
     }).strict()),
     unpricedModels: z.array(z.string()),
+    latestTurn: z.object({
+      turn: z.number().int().positive(),
+      cost: z.number().nonnegative(),
+      uncachedInputTokens: z.number().int().nonnegative(),
+      outputTokens: z.number().int().nonnegative(),
+      cacheReadTokens: z.number().int().nonnegative(),
+      cacheWriteTokens: z.number().int().nonnegative(),
+      unpricedModels: z.array(z.string()),
+    }).strict().optional(),
     quota: z.object({
       limit: z.number().positive(),
       used: z.number().nonnegative(),
@@ -202,7 +247,7 @@ export const billingProjectionDefinition = (
   return {
     key: 'billing',
     schema,
-    init: () => ({ header: null, buckets: {}, unpriced: [], last: null }),
+    init: () => ({ header: null, buckets: {}, unpriced: [], last: null, latestTurn: null }),
     apply: (state, event) => {
       if (event.type === 'request/header') {
         const header = { provider: event.data.header.config.provider, model: event.data.header.config.model }
@@ -227,8 +272,12 @@ export const billingProjectionDefinition = (
       if (previous !== null && bucketsEqual(previous.buckets, buckets)) return state
 
       let next = state
-      if (previous !== null) next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1)
+      if (previous !== null) {
+        next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1)
+        next = addLatestTurnBuckets(next, turn, previous.key, previous.provider, previous.model, previous.buckets, -1)
+      }
       next = addBuckets(next, key, provider, model, buckets, 1)
+      next = addLatestTurnBuckets(next, turn, key, provider, model, buckets, 1)
       next = { ...next, last: { turn, step, key, provider, model, buckets } }
       return resolvePrice(resolved.prices, resolved.catalog, resolved.currency, provider, model) === undefined
         ? noteUnpriced(next, model)
@@ -271,15 +320,36 @@ export const billingProjectionDefinition = (
         percent: Math.min(1, totalCost / resolved.quotaLimit),
         estimated: state.unpriced.length > 0,
       }
+      const latestTurn = state.latestTurn === null ? undefined : (() => {
+        const totals = zeroBuckets()
+        const unpriced = new Set<string>()
+        let cost = 0
+        for (const bucket of Object.values(state.latestTurn.buckets)) {
+          const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model)
+          cost += costOf(price, bucket)
+          totals.uncachedInputTokens += bucket.uncachedInputTokens
+          totals.outputTokens += bucket.outputTokens
+          totals.cacheReadTokens += bucket.cacheReadTokens
+          totals.cacheWriteTokens += bucket.cacheWriteTokens
+          if (price === undefined) unpriced.add(bucket.model)
+        }
+        return {
+          turn: state.latestTurn.turn,
+          cost: roundMoney(cost),
+          ...totals,
+          unpricedModels: [...unpriced].sort(),
+        }
+      })()
       const projection: BillingProjection = {
         currency: resolved.currency,
         totalCost,
         models,
         unpricedModels: [...state.unpriced],
+        ...latestTurn === undefined ? {} : { latestTurn },
         ...quota === undefined ? {} : { quota },
       }
       return projection
     },
-    stateVersion: 3,
+    stateVersion: 4,
   }
 }

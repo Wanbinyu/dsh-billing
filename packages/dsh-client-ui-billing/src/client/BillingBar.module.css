@@ -19,7 +19,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   max-width: calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));
   height: 36px;
@@ -46,12 +46,27 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.total {
+.costs {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: 13px;
   line-height: 20px;
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .quota {
@@ -78,6 +93,18 @@
   background: var(--dsw-alias-state-business-primary);
 }
 
+.quotaFill[data-tone='notice'] {
+  filter: saturate(1.35);
+}
+
+.quotaFill[data-tone='warning'] {
+  background: var(--dsw-alias-state-warning-primary);
+}
+
+.quotaFill[data-tone='danger'] {
+  background: var(--dsw-alias-state-error-primary, #cf222e);
+}
+
 .quotaText {
   flex: 1;
   min-width: 0;
@@ -94,4 +121,61 @@
   font-size: 12px;
   line-height: 20px;
   color: var(--dsw-alias-state-warning-primary);
+}
+
+.quotaAlert {
+  flex: none;
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.quotaAlert[data-tone='warning'] {
+  color: var(--dsw-alias-state-warning-primary);
+}
+
+.quotaAlert[data-tone='danger'] {
+  color: var(--dsw-alias-state-error-primary, #cf222e);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .label,
+  .quotaText {
+    display: none;
+  }
+
+  .bar {
+    gap: 6px;
+  }
+
+  .costs {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 520px) {
+  .glyph,
+  .quotaAlert {
+    display: none;
+  }
+
+  .quotaTrack {
+    width: 40px;
+  }
+
+  .unpriced {
+    max-width: 54px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .metricLabel,
+  .unpriced {
+    display: none;
+  }
 }

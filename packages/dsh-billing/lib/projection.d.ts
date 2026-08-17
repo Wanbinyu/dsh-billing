@@ -40,6 +40,11 @@ interface UsageSample {
     model: string;
     buckets: ModelBuckets;
 }
+/** Token buckets for the newest turn only, used by the compact per-turn UI. */
+interface LatestTurnState {
+    turn: number;
+    buckets: Record<string, Bucket>;
+}
 /** Fold state (plain JSON per the unit contract). */
 interface BillingState {
     /** Provider/model of the newest `request/header`; null before the first. */
@@ -53,6 +58,8 @@ interface BillingState {
     unpriced: string[];
     /** Newest usage sample; null before the first. */
     last: UsageSample | null;
+    /** Newest turn with a usage sample; null before the first. */
+    latestTurn: LatestTurnState | null;
 }
 /**
  * Billing's session projection unit.

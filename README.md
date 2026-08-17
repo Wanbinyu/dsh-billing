@@ -12,7 +12,7 @@
 | 包 | 作用 |
 | --- | --- |
 | `dsh-billing` | 按 provider/model 统计 token 费用，生成 `billing` session projection，并支持每会话额度。 |
-| `dsh-client-ui-billing` | 在 Web composer dock 显示费用、额度进度、未定价模型提示和模型明细。 |
+| `dsh-client-ui-billing` | 在 Web composer dock 显示本轮/会话费用、额度进度、未定价模型提示和模型明细。 |
 | `dsh-billing-community-bundle` | 将上面两个包和 `cordis.patch.yml` 组合成可安装的 DSH bundle。 |
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
@@ -78,15 +78,27 @@ interface BillingProjection {
             outputTokens: number; cacheReadTokens: number;
             cacheWriteTokens: number }[]
   unpricedModels: string[]
+  latestTurn?: { turn: number; cost: number; uncachedInputTokens: number;
+                 outputTokens: number; cacheReadTokens: number;
+                 cacheWriteTokens: number; unpricedModels: string[] }
   quota?: { limit: number; used: number; remaining: number; percent: number; estimated: boolean }
 }
 ```
 
-usage 采用 `request/header` 对 step 进行归属；同一 `(turn, step)` 的后续样本会替换早期样本，避免重复计费；没有前置 header 的 usage 会放入保留的 `(unknown)` bucket。
+usage 采用 `request/header` 对 step 进行归属；同一 `(turn, step)` 的后续样本会同时替换会话累计和本轮数据中的早期样本，避免重复计费；没有前置 header 的 usage 会放入保留的 `(unknown)` bucket。`latestTurn` 在首次收到 usage 后出现，供客户端显示最近一轮的费用和 Token 明细。
+
+Web 费用条同时显示“本轮”和“会话”金额。鼠标悬停可查看本轮输入、输出、缓存命中/写入 Token 以及分模型费用；额度达到 50%、80% 和 100% 时会逐级增强提示颜色。
 
 ## 开发与验证
 
-host 配置和 projection 有单元测试；浏览器响应式布局和真实 Web 组合测试仍是后续工作。内置目录通过以下脚本从 pi-ai model catalog 生成：
+host 配置、projection 去重和额度状态有单元测试；浏览器真实 Web 组合测试仍是后续工作。运行完整验证：
+
+```sh
+npm run build
+npm run verify
+```
+
+内置目录通过以下脚本从 pi-ai model catalog 生成：
 
 ```sh
 node packages/dsh-billing/scripts/generate-catalog.mjs

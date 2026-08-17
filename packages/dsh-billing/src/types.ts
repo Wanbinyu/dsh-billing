@@ -73,6 +73,24 @@ export interface BillingQuotaProgress {
   estimated: boolean
 }
 
+/** Cost and token usage attributed to the latest turn that reported usage. */
+export interface BillingTurnSummary {
+  /** One-based turn number from the session event stream. */
+  turn: number
+  /** Known cost for this turn, rounded to six decimals. */
+  cost: number
+  /** Reported uncached input tokens in this turn. */
+  uncachedInputTokens: number
+  /** Reported output tokens in this turn. */
+  outputTokens: number
+  /** Reported cache-read tokens in this turn. */
+  cacheReadTokens: number
+  /** Reported cache-write tokens in this turn. */
+  cacheWriteTokens: number
+  /** Models used in this turn that have no resolved price, ascending. */
+  unpricedModels: string[]
+}
+
 /** Whole-value `billing` projection: per-model cost accounting and optional quota progress. */
 export interface BillingProjection {
   /** ISO 4217 currency code prices and costs are denominated in. */
@@ -83,6 +101,8 @@ export interface BillingProjection {
   models: BillingModelRow[]
   /** Model ids with usage but no configured price, ascending; the `'(unknown)'` fallback model appears here too. */
   unpricedModels: string[]
+  /** Latest turn that reported usage; absent before the first usage sample. */
+  latestTurn?: BillingTurnSummary
   /** Quota progress; absent unless the plugin configures `quota`. `estimated` is true when pricing is incomplete. */
   quota?: BillingQuotaProgress
 }

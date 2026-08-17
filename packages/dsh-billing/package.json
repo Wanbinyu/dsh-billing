@@ -1,7 +1,7 @@
 {
   "name": "dsh-billing",
   "description": "Per-model cost accounting and session quota progress (billing projection) with a built-in price catalog for 1000+ models",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",

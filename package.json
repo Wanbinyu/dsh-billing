@@ -1,6 +1,6 @@
 {
   "name": "dsh-billing-community-bundle",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Installable DeepSeek Harness bundle for the dsh-billing host projection and client UI",
   "type": "module",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "typecheck": "npm run build:host && npm run typecheck:host && npm run typecheck:client",
     "typecheck:host": "tsc -p packages/dsh-billing/tsconfig.json --noEmit",
     "typecheck:client": "tsc -p packages/dsh-client-ui-billing/tsconfig.json --noEmit",
-    "test": "vitest run packages/dsh-billing/tests",
+    "test": "vitest run packages/dsh-billing/tests packages/dsh-client-ui-billing/tests",
     "pack:check": "npm pack --dry-run",
     "verify": "npm run typecheck && npm test && npm run pack:check"
   },

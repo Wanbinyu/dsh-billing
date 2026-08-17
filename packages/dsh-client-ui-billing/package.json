@@ -1,7 +1,7 @@
 {
   "name": "dsh-client-ui-billing",
   "description": "Session cost and quota progress strip in the composer dock over the billing session projection",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -51,7 +51,7 @@
     "ui"
   ],
   "peerDependencies": {
-    "dsh-billing": "^0.3.0",
+    "dsh-billing": "^0.4.0",
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
