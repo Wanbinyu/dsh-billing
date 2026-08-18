@@ -219,6 +219,20 @@ describe('billing projection unit (registry drive)', () => {
     })
   })
 
+  it('removes stale unpriced attribution when the same step moves to a priced model', async () => {
+    const { ctx, session } = await harness(true)
+    header(session, 'mock', 'not-listed')
+    usageChunk(session, { inputTokens: 1_000_000, outputTokens: 10 }, 1, 1)
+    header(session, 'mock', 'deepseek-v4-flash')
+    finalUsage(session, { inputTokens: 1_000_000, outputTokens: 10 }, 1, 1)
+
+    const value = projected(ctx, session)
+    expect(value.models).toEqual([row('mock', 'deepseek-v4-flash', 0.200008, 1_000_000, 10)])
+    expect(value.unpricedModels).toEqual([])
+    expect(value.latestTurn?.unpricedModels).toEqual([])
+    expect(value.quota?.estimated).toBe(false)
+  })
+
   it('serves the latest turn separately from the whole-session total', async () => {
     const { ctx, session } = await harness(true)
     header(session, 'mock', 'deepseek-v4-flash')

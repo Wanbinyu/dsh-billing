@@ -71,6 +71,12 @@ describe('billing plugin config', () => {
     expect(registrations).toHaveLength(2)
   })
 
+  it('normalizes supported currency codes and rejects unknown ones', () => {
+    expect(BillingPlugin.Config({ ...VALID, currency: ' cny ' }).currency).toBe('CNY')
+    expect(() => BillingPlugin.Config({ ...VALID, currency: 'RMB' })).toThrow(/supported ISO 4217 code/)
+    expect(() => ctxApply({ ...VALID, currency: 'ZZZ' } as never)).toThrow(/supported ISO 4217 code/)
+  })
+
   it('rejects an unknown top-level key', () => {
     expect(() => ctxApply({ ...VALID, budget: 1 } as never)).toThrow(/unknown key "budget"/)
   })

@@ -18,6 +18,15 @@ import { billingProjectionDefinition } from "./projection.js";
 export const name = 'billing';
 /** The projection registry is the plugin's whole purpose; without it the fiber stays pending. */
 export const inject = ['sessionProjections'];
+const SUPPORTED_CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
+/** Normalize and validate the ISO 4217 code before it reaches the client formatter. */
+function normalizeCurrency(value) {
+    const currency = value.trim().toUpperCase();
+    if (!SUPPORTED_CURRENCIES.has(currency)) {
+        throw new Error(`BillingConfig: currency must be a supported ISO 4217 code: "${value}"`);
+    }
+    return currency;
+}
 /**
  * Plugin config: provider/model prices (with a model-only fallback), the currency, and an optional per-session
  * cost cap. Cache-read/cache-write prices default to zero when omitted; an
@@ -32,7 +41,7 @@ export const Config = z.object({
         cacheRead: z.number().min(0).default(0),
         cacheWrite: z.number().min(0).default(0),
     })),
-    currency: z.string().default('USD'),
+    currency: z.transform(z.string(), normalizeCurrency).default('USD'),
     // Schemastery exposes an inclusive minimum; the smallest positive finite
     // number gives this field the intended strictly-positive contract.
     quota: z.object({ limit: z.number().min(Number.MIN_VALUE) }),
@@ -68,10 +77,11 @@ function validateConfigKeys(config) {
  */
 export function apply(ctx, config = { models: {}, currency: 'USD' }) {
     validateConfigKeys(config);
+    const currency = normalizeCurrency(config.currency);
     ctx.sessionProjections.register(billingProjectionDefinition({
         prices: config.models,
         catalog: BUILTIN_CATALOG,
-        currency: config.currency,
+        currency,
         quotaLimit: config.quota?.limit,
     }));
 }

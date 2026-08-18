@@ -54,8 +54,6 @@ interface BillingState {
     } | null;
     /** Token buckets keyed by provider + KEY_SEPARATOR + model. */
     buckets: Record<string, Bucket>;
-    /** Model ids with usage but no resolved price, ascending. */
-    unpriced: string[];
     /** Newest usage sample; null before the first. */
     last: UsageSample | null;
     /** Newest turn with a usage sample; null before the first. */

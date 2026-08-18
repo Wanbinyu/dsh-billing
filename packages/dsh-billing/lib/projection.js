@@ -37,6 +37,10 @@ const bucketsEqual = (left, right) => left.uncachedInputTokens === right.uncache
     && left.outputTokens === right.outputTokens
     && left.cacheReadTokens === right.cacheReadTokens
     && left.cacheWriteTokens === right.cacheWriteTokens;
+const bucketsEmpty = (buckets) => buckets.uncachedInputTokens === 0
+    && buckets.outputTokens === 0
+    && buckets.cacheReadTokens === 0
+    && buckets.cacheWriteTokens === 0;
 /** The usage a chunk or finalized message reports for its step, if any. */
 const usageOf = (event) => event.type === 'assistant/chunk' && event.data.chunk.type === 'usage'
     ? event.data.chunk.usage
@@ -58,7 +62,12 @@ const addBuckets = (state, key, provider, model, buckets, sign) => {
         cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
         cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
     };
-    return { ...state, buckets: { ...state.buckets, [key]: next } };
+    const nextBuckets = { ...state.buckets };
+    if (bucketsEmpty(next))
+        delete nextBuckets[key];
+    else
+        nextBuckets[key] = next;
+    return { ...state, buckets: nextBuckets };
 };
 /** Add signed buckets to the newest-turn view, resetting it when a later turn starts. */
 const addLatestTurnBuckets = (state, turn, key, provider, model, buckets, sign) => {
@@ -74,17 +83,15 @@ const addLatestTurnBuckets = (state, turn, key, provider, model, buckets, sign) 
         cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
         cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
     };
+    const nextBuckets = { ...current.buckets };
+    if (bucketsEmpty(next))
+        delete nextBuckets[key];
+    else
+        nextBuckets[key] = next;
     return {
         ...state,
-        latestTurn: { turn, buckets: { ...current.buckets, [key]: next } },
+        latestTurn: { turn, buckets: nextBuckets },
     };
-};
-/** Insert `model` into the ascending `unpriced` list when absent. */
-const noteUnpriced = (state, model) => {
-    if (state.unpriced.includes(model))
-        return state;
-    const next = [...state.unpriced, model].sort();
-    return { ...state, unpriced: next };
 };
 /**
  * Round a money figure to six decimals so every snapshot is deterministic
@@ -150,7 +157,7 @@ export const billingProjectionDefinition = (resolved) => {
     return {
         key: 'billing',
         schema,
-        init: () => ({ header: null, buckets: {}, unpriced: [], last: null, latestTurn: null }),
+        init: () => ({ header: null, buckets: {}, last: null, latestTurn: null }),
         apply: (state, event) => {
             if (event.type === 'request/header') {
                 const header = { provider: event.data.header.config.provider, model: event.data.header.config.model };
@@ -172,7 +179,7 @@ export const billingProjectionDefinition = (resolved) => {
             const previous = state.last !== null && state.last.turn === turn && state.last.step === step
                 ? state.last
                 : null;
-            if (previous !== null && bucketsEqual(previous.buckets, buckets))
+            if (previous !== null && previous.key === key && bucketsEqual(previous.buckets, buckets))
                 return state;
             let next = state;
             if (previous !== null) {
@@ -182,14 +189,15 @@ export const billingProjectionDefinition = (resolved) => {
             next = addBuckets(next, key, provider, model, buckets, 1);
             next = addLatestTurnBuckets(next, turn, key, provider, model, buckets, 1);
             next = { ...next, last: { turn, step, key, provider, model, buckets } };
-            return resolvePrice(resolved.prices, resolved.catalog, resolved.currency, provider, model) === undefined
-                ? noteUnpriced(next, model)
-                : next;
+            return next;
         },
         view: (state) => {
             const grouped = new Map();
+            const unpriced = new Set();
             for (const bucket of Object.values(state.buckets)) {
                 const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model);
+                if (price === undefined)
+                    unpriced.add(bucket.model);
                 const cost = roundMoney(costOf(price, bucket));
                 const key = keyOf(bucket.provider, bucket.model);
                 const row = grouped.get(key);
@@ -222,7 +230,7 @@ export const billingProjectionDefinition = (resolved) => {
                 used: totalCost,
                 remaining: Math.max(0, resolved.quotaLimit - totalCost),
                 percent: Math.min(1, totalCost / resolved.quotaLimit),
-                estimated: state.unpriced.length > 0,
+                estimated: unpriced.size > 0,
             };
             const latestTurn = state.latestTurn === null ? undefined : (() => {
                 const totals = zeroBuckets();
@@ -249,12 +257,12 @@ export const billingProjectionDefinition = (resolved) => {
                 currency: resolved.currency,
                 totalCost,
                 models,
-                unpricedModels: [...state.unpriced],
+                unpricedModels: [...unpriced].sort(),
                 ...latestTurn === undefined ? {} : { latestTurn },
                 ...quota === undefined ? {} : { quota },
             };
             return projection;
         },
-        stateVersion: 4,
+        stateVersion: 5,
     };
 };
