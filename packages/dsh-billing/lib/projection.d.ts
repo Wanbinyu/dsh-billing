@@ -59,6 +59,14 @@ interface BillingState {
     /** Newest turn with a usage sample; null before the first. */
     latestTurn: LatestTurnState | null;
 }
+declare module '@deepseek-ai/dsh-session-projection/types' {
+    interface SessionProjectionStateMap {
+        billing: BillingState;
+    }
+}
+type BillingProjectionDefinition = Omit<ProjectionDefinition<'billing', BillingState>, 'wire'> & {
+    wire: NonNullable<ProjectionDefinition<'billing', BillingState>['wire']>;
+};
 /**
  * Billing's session projection unit.
  *
@@ -74,5 +82,5 @@ export declare const billingProjectionDefinition: (resolved: {
     catalog: Record<string, Record<string, CatalogEntry>>;
     currency: string;
     quotaLimit: number | undefined;
-}) => ProjectionDefinition<"billing", BillingState>;
+}) => BillingProjectionDefinition;
 export {};

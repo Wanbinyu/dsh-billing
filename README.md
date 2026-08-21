@@ -17,6 +17,8 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
+`v0.6.2` 已使用 DeepSeek Harness `0.1.1-rc.1` 完成类型、测试和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8` 的兼容分支。
+
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：

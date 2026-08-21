@@ -124,7 +124,36 @@ const resolvePrice = (prices, catalog, currency, provider, model) => prices[`${p
  * never reports usage for an earlier step again.
  */
 export const billingProjectionDefinition = (resolved) => {
-    const schema = z.object({
+    const modelBucketsSchema = z.object({
+        uncachedInputTokens: z.number().int().nonnegative(),
+        outputTokens: z.number().int().nonnegative(),
+        cacheReadTokens: z.number().int().nonnegative(),
+        cacheWriteTokens: z.number().int().nonnegative(),
+    }).strict();
+    const bucketSchema = modelBucketsSchema.extend({
+        provider: z.string(),
+        model: z.string(),
+    }).strict();
+    const stateSchema = z.object({
+        header: z.object({
+            provider: z.string(),
+            model: z.string(),
+        }).strict().nullable(),
+        buckets: z.record(z.string(), bucketSchema),
+        last: z.object({
+            turn: z.number().int().positive(),
+            step: z.number().int().nonnegative(),
+            key: z.string(),
+            provider: z.string(),
+            model: z.string(),
+            buckets: modelBucketsSchema,
+        }).strict().nullable(),
+        latestTurn: z.object({
+            turn: z.number().int().positive(),
+            buckets: z.record(z.string(), bucketSchema),
+        }).strict().nullable(),
+    }).strict();
+    const viewSchema = z.object({
         currency: z.string(),
         totalCost: z.number().nonnegative(),
         models: z.array(z.object({
@@ -156,7 +185,7 @@ export const billingProjectionDefinition = (resolved) => {
     }).strict();
     return {
         key: 'billing',
-        schema,
+        stateSchema,
         init: () => ({ header: null, buckets: {}, last: null, latestTurn: null }),
         apply: (state, event) => {
             if (event.type === 'request/header') {
@@ -191,77 +220,80 @@ export const billingProjectionDefinition = (resolved) => {
             next = { ...next, last: { turn, step, key, provider, model, buckets } };
             return next;
         },
-        view: (state) => {
-            const grouped = new Map();
-            const unpriced = new Set();
-            for (const bucket of Object.values(state.buckets)) {
-                const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model);
-                if (price === undefined)
-                    unpriced.add(bucket.model);
-                const cost = roundMoney(costOf(price, bucket));
-                const key = keyOf(bucket.provider, bucket.model);
-                const row = grouped.get(key);
-                if (row === undefined) {
-                    grouped.set(key, {
-                        provider: bucket.provider,
-                        model: bucket.model,
-                        cost,
-                        uncachedInputTokens: bucket.uncachedInputTokens,
-                        outputTokens: bucket.outputTokens,
-                        cacheReadTokens: bucket.cacheReadTokens,
-                        cacheWriteTokens: bucket.cacheWriteTokens,
-                    });
-                }
-                else {
-                    row.cost = roundMoney(row.cost + cost);
-                    row.uncachedInputTokens += bucket.uncachedInputTokens;
-                    row.outputTokens += bucket.outputTokens;
-                    row.cacheReadTokens += bucket.cacheReadTokens;
-                    row.cacheWriteTokens += bucket.cacheWriteTokens;
-                }
-            }
-            const models = [...grouped.values()].sort((a, b) => {
-                const providerOrder = a.provider.localeCompare(b.provider);
-                return providerOrder !== 0 ? providerOrder : a.model.localeCompare(b.model);
-            });
-            const totalCost = roundMoney(models.reduce((sum, row) => sum + row.cost, 0));
-            const quota = resolved.quotaLimit === undefined ? undefined : {
-                limit: resolved.quotaLimit,
-                used: totalCost,
-                remaining: Math.max(0, resolved.quotaLimit - totalCost),
-                percent: Math.min(1, totalCost / resolved.quotaLimit),
-                estimated: unpriced.size > 0,
-            };
-            const latestTurn = state.latestTurn === null ? undefined : (() => {
-                const totals = zeroBuckets();
+        wire: {
+            viewSchema,
+            view: (state) => {
+                const grouped = new Map();
                 const unpriced = new Set();
-                let cost = 0;
-                for (const bucket of Object.values(state.latestTurn.buckets)) {
+                for (const bucket of Object.values(state.buckets)) {
                     const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model);
-                    cost += costOf(price, bucket);
-                    totals.uncachedInputTokens += bucket.uncachedInputTokens;
-                    totals.outputTokens += bucket.outputTokens;
-                    totals.cacheReadTokens += bucket.cacheReadTokens;
-                    totals.cacheWriteTokens += bucket.cacheWriteTokens;
                     if (price === undefined)
                         unpriced.add(bucket.model);
+                    const cost = roundMoney(costOf(price, bucket));
+                    const key = keyOf(bucket.provider, bucket.model);
+                    const row = grouped.get(key);
+                    if (row === undefined) {
+                        grouped.set(key, {
+                            provider: bucket.provider,
+                            model: bucket.model,
+                            cost,
+                            uncachedInputTokens: bucket.uncachedInputTokens,
+                            outputTokens: bucket.outputTokens,
+                            cacheReadTokens: bucket.cacheReadTokens,
+                            cacheWriteTokens: bucket.cacheWriteTokens,
+                        });
+                    }
+                    else {
+                        row.cost = roundMoney(row.cost + cost);
+                        row.uncachedInputTokens += bucket.uncachedInputTokens;
+                        row.outputTokens += bucket.outputTokens;
+                        row.cacheReadTokens += bucket.cacheReadTokens;
+                        row.cacheWriteTokens += bucket.cacheWriteTokens;
+                    }
                 }
-                return {
-                    turn: state.latestTurn.turn,
-                    cost: roundMoney(cost),
-                    ...totals,
-                    unpricedModels: [...unpriced].sort(),
+                const models = [...grouped.values()].sort((a, b) => {
+                    const providerOrder = a.provider.localeCompare(b.provider);
+                    return providerOrder !== 0 ? providerOrder : a.model.localeCompare(b.model);
+                });
+                const totalCost = roundMoney(models.reduce((sum, row) => sum + row.cost, 0));
+                const quota = resolved.quotaLimit === undefined ? undefined : {
+                    limit: resolved.quotaLimit,
+                    used: totalCost,
+                    remaining: Math.max(0, resolved.quotaLimit - totalCost),
+                    percent: Math.min(1, totalCost / resolved.quotaLimit),
+                    estimated: unpriced.size > 0,
                 };
-            })();
-            const projection = {
-                currency: resolved.currency,
-                totalCost,
-                models,
-                unpricedModels: [...unpriced].sort(),
-                ...latestTurn === undefined ? {} : { latestTurn },
-                ...quota === undefined ? {} : { quota },
-            };
-            return projection;
+                const latestTurn = state.latestTurn === null ? undefined : (() => {
+                    const totals = zeroBuckets();
+                    const unpriced = new Set();
+                    let cost = 0;
+                    for (const bucket of Object.values(state.latestTurn.buckets)) {
+                        const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model);
+                        cost += costOf(price, bucket);
+                        totals.uncachedInputTokens += bucket.uncachedInputTokens;
+                        totals.outputTokens += bucket.outputTokens;
+                        totals.cacheReadTokens += bucket.cacheReadTokens;
+                        totals.cacheWriteTokens += bucket.cacheWriteTokens;
+                        if (price === undefined)
+                            unpriced.add(bucket.model);
+                    }
+                    return {
+                        turn: state.latestTurn.turn,
+                        cost: roundMoney(cost),
+                        ...totals,
+                        unpricedModels: [...unpriced].sort(),
+                    };
+                })();
+                const projection = {
+                    currency: resolved.currency,
+                    totalCost,
+                    models,
+                    unpricedModels: [...unpriced].sort(),
+                    ...latestTurn === undefined ? {} : { latestTurn },
+                    ...quota === undefined ? {} : { quota },
+                };
+                return projection;
+            },
         },
         stateVersion: 5,
     };

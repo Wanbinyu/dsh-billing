@@ -73,6 +73,17 @@ interface BillingState {
   latestTurn: LatestTurnState | null
 }
 
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    billing: BillingState
+  }
+}
+
+type BillingProjectionDefinition =
+  Omit<ProjectionDefinition<'billing', BillingState>, 'wire'> & {
+    wire: NonNullable<ProjectionDefinition<'billing', BillingState>['wire']>
+  }
+
 const zeroBuckets = (): ModelBuckets => ({
   uncachedInputTokens: 0,
   outputTokens: 0,
@@ -215,8 +226,37 @@ export const billingProjectionDefinition = (
     currency: string
     quotaLimit: number | undefined
   },
-): ProjectionDefinition<'billing', BillingState> => {
-  const schema = z.object({
+): BillingProjectionDefinition => {
+  const modelBucketsSchema = z.object({
+    uncachedInputTokens: z.number().int().nonnegative(),
+    outputTokens: z.number().int().nonnegative(),
+    cacheReadTokens: z.number().int().nonnegative(),
+    cacheWriteTokens: z.number().int().nonnegative(),
+  }).strict()
+  const bucketSchema = modelBucketsSchema.extend({
+    provider: z.string(),
+    model: z.string(),
+  }).strict()
+  const stateSchema = z.object({
+    header: z.object({
+      provider: z.string(),
+      model: z.string(),
+    }).strict().nullable(),
+    buckets: z.record(z.string(), bucketSchema),
+    last: z.object({
+      turn: z.number().int().positive(),
+      step: z.number().int().nonnegative(),
+      key: z.string(),
+      provider: z.string(),
+      model: z.string(),
+      buckets: modelBucketsSchema,
+    }).strict().nullable(),
+    latestTurn: z.object({
+      turn: z.number().int().positive(),
+      buckets: z.record(z.string(), bucketSchema),
+    }).strict().nullable(),
+  }).strict() as unknown as z.ZodType<BillingState>
+  const viewSchema = z.object({
     currency: z.string(),
     totalCost: z.number().nonnegative(),
     models: z.array(z.object({
@@ -249,7 +289,7 @@ export const billingProjectionDefinition = (
 
   return {
     key: 'billing',
-    schema,
+    stateSchema,
     init: () => ({ header: null, buckets: {}, last: null, latestTurn: null }),
     apply: (state, event) => {
       if (event.type === 'request/header') {
@@ -284,7 +324,9 @@ export const billingProjectionDefinition = (
       next = { ...next, last: { turn, step, key, provider, model, buckets } }
       return next
     },
-    view: (state) => {
+    wire: {
+      viewSchema,
+      view: (state) => {
       const grouped = new Map<string, { provider: string; model: string; cost: number } & ModelBuckets>()
       const unpriced = new Set<string>()
       for (const bucket of Object.values(state.buckets)) {
@@ -351,7 +393,8 @@ export const billingProjectionDefinition = (
         ...latestTurn === undefined ? {} : { latestTurn },
         ...quota === undefined ? {} : { quota },
       }
-      return projection
+        return projection
+      },
     },
     stateVersion: 5,
   }

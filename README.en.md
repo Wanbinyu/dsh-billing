@@ -17,6 +17,8 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
+`v0.6.2` is type-checked, tested, and package-validated against DeepSeek Harness `0.1.1-rc.1` while retaining a compatibility branch for `0.1.0-rc.6` through `rc.8`.
+
 ## Install As A Bundle
 
 The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
