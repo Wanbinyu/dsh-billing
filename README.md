@@ -17,14 +17,14 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
-`v0.6.2` 已使用 DeepSeek Harness `0.1.1-rc.1` 完成类型、测试和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8` 的兼容分支。
+`v0.6.3` 已使用 DeepSeek Harness `0.1.1-rc.2` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:Wanbinyu/dsh-billing
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.3/dsh-billing-community-bundle-0.6.3.tgz
 ```
 
 安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。

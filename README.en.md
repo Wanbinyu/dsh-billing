@@ -17,14 +17,14 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
-`v0.6.2` is type-checked, tested, and package-validated against DeepSeek Harness `0.1.1-rc.1` while retaining a compatibility branch for `0.1.0-rc.6` through `rc.8`.
+`v0.6.3` is type-checked, tested, fully built, and package-validated against DeepSeek Harness `0.1.1-rc.2` while retaining compatibility with `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1`.
 
 ## Install As A Bundle
 
 The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add github:Wanbinyu/dsh-billing
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.3/dsh-billing-community-bundle-0.6.3.tgz
 ```
 
 Restart dsh after installation. One `billing` composition entry enables both the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
