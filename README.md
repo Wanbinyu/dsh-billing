@@ -93,7 +93,7 @@ Web 费用条同时显示“本轮”和“会话”金额。鼠标悬停可查�
 
 ## 开发与验证
 
-host 配置、projection 去重和额度状态有单元测试；浏览器真实 Web 组合测试仍是后续工作。运行完整验证：
+host 配置、projection 去重、额度状态和 Web `BillingBar` 服务端渲染输出均有自动化测试；真实 Harness Web 安装与视口组合仍按发布检查表手动验证。运行完整验证：
 
 ```sh
 npm run build
@@ -110,7 +110,7 @@ node packages/dsh-billing/scripts/generate-catalog.mjs
 
 - 费用是本地参考值，不是发票或强制限流依据。
 - quota 目前按 session 计算，部署级预算暂未实现。
-- 当前目标版本是 DeepSeek Harness `0.1.0-rc.x`。
+- 兼容 DeepSeek Harness `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2`；开发依赖固定在 `0.1.1-rc.2`。
 
 ## 链接
 

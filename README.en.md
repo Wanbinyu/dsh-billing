@@ -93,7 +93,7 @@ The Web strip shows both Turn and Session amounts. Hovering reveals the latest t
 
 ## Development And Verification
 
-Host configuration, projection replacement, and quota states have unit coverage. Real Web composition testing remains future work. Run the complete verification with:
+Host configuration, projection replacement, quota states, and the Web `BillingBar` server-rendered output have automated coverage. Installation and viewport composition in a real Harness Web profile remain manual release checks. Run the complete verification with:
 
 ```sh
 npm run build
@@ -110,7 +110,7 @@ node packages/dsh-billing/scripts/generate-catalog.mjs
 
 - Costs are local reference values, not invoices or a hard gating input.
 - Quota is currently per session; deployment-wide budgets are deferred.
-- The current target is DeepSeek Harness `0.1.0-rc.x`.
+- Compatible with DeepSeek Harness `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1` through `rc.2`; development dependencies are pinned to `0.1.1-rc.2`.
 
 ## Links
 
