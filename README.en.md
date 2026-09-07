@@ -17,14 +17,14 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
-`v0.6.3` is type-checked, tested, fully built, and package-validated against DeepSeek Harness `0.1.1-rc.2` while retaining compatibility with `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1`.
+`v0.6.4` is type-checked, tested, fully built, and package-validated against DeepSeek Harness `0.1.2-rc.1` while retaining compatibility with `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1` through `rc.2`.
 
 ## Install As A Bundle
 
 The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.3/dsh-billing-community-bundle-0.6.3.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.4/dsh-billing-community-bundle-0.6.4.tgz
 ```
 
 Restart dsh after installation. One `billing` composition entry enables both the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
@@ -50,7 +50,7 @@ Then add this to the profile's `cordis.patch.yml`:
 
 ## Configure Pricing And Quota
 
-DeepSeek's example rates use CNY per one million tokens: `0.02` for cache hits, `1` for uncached input, and `2` for output. Configure your contract rates; peak/valley pricing may change over time.
+DeepSeek uses peak/off-peak pricing, and prices may change over time. Configure your contract or current official rates when you need an exact bill. The built-in USD catalog includes `deepseek-v4-flash-vision-exp` at the same reference rate as `deepseek-v4-flash`; provider-reported image tokens are billed as input tokens.
 
 ```yaml
 - id: billing
@@ -110,7 +110,7 @@ node packages/dsh-billing/scripts/generate-catalog.mjs
 
 - Costs are local reference values, not invoices or a hard gating input.
 - Quota is currently per session; deployment-wide budgets are deferred.
-- Compatible with DeepSeek Harness `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1` through `rc.2`; development dependencies are pinned to `0.1.1-rc.2`.
+- Compatible with DeepSeek Harness `0.1.0-rc.6` through `rc.8`, `0.1.1-rc.1` through `rc.2`, and `0.1.2-rc.1`; development dependencies are pinned to `0.1.2-rc.1`, while `@deepseek-ai/dsh-client-runtime` remains on the official `next` package `0.1.1-rc.2`.
 
 ## Links
 

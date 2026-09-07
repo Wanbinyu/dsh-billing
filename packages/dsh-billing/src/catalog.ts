@@ -261,6 +261,7 @@ export const BUILTIN_CATALOG: Record<string, Record<string, CatalogEntry>> = {
   },
   "deepseek": {
     "deepseek-v4-flash": { input: 0.14, output: 0.28, cacheRead: 0.0028, cacheWrite: 0 },
+    "deepseek-v4-flash-vision-exp": { input: 0.14, output: 0.28, cacheRead: 0.0028, cacheWrite: 0 },
     "deepseek-v4-pro": { input: 0.435, output: 0.87, cacheRead: 0.003625, cacheWrite: 0 },
   },
   "fireworks": {
@@ -1088,7 +1089,7 @@ export const BUILTIN_CATALOG: Record<string, Record<string, CatalogEntry>> = {
 }
 
 /** Number of priced catalog entries (regeneration sanity figure). */
-export const BUILTIN_CATALOG_SIZE = 1008
+export const BUILTIN_CATALOG_SIZE = 1009
 
 /** Number of provider routes the catalog covers. */
 export const BUILTIN_CATALOG_PROVIDERS = 30

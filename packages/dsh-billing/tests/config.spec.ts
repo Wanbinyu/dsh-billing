@@ -108,6 +108,9 @@ describe('built-in catalog', () => {
   it('is non-empty and covers the expected provider/model pairs', () => {
     expect(Object.keys(BUILTIN_CATALOG).length).toBeGreaterThan(20)
     expect(BUILTIN_CATALOG.deepseek?.['deepseek-v4-flash']).toBeDefined()
+    expect(BUILTIN_CATALOG.deepseek?.['deepseek-v4-flash-vision-exp']).toEqual(
+      BUILTIN_CATALOG.deepseek?.['deepseek-v4-flash'],
+    )
     expect(BUILTIN_CATALOG.anthropic?.['claude-haiku-4-5']).toBeDefined()
   })
 

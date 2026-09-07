@@ -1,7 +1,7 @@
 {
   "name": "dsh-client-ui-billing",
   "description": "Session cost and quota progress strip in the composer dock over the billing session projection",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -52,13 +52,13 @@
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6 || ^0.1.1-rc.1",
-    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6 || ^0.1.1-rc.1",
-    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.0-rc.6 || ^0.1.1-rc.1",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6 || ^0.1.1-rc.1",
-    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.6 || ^0.1.1-rc.1",
-    "dsh-billing": "^0.4.0",
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1",
+    "dsh-billing": "^0.4.1",
     "react": "^18.2.0"
   },
   "dependencies": {

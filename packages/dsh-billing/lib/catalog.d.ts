@@ -17,6 +17,6 @@ export interface CatalogEntry {
 /** Provider/model → price table (nested by provider, then model id). */
 export declare const BUILTIN_CATALOG: Record<string, Record<string, CatalogEntry>>;
 /** Number of priced catalog entries (regeneration sanity figure). */
-export declare const BUILTIN_CATALOG_SIZE = 1008;
+export declare const BUILTIN_CATALOG_SIZE = 1009;
 /** Number of provider routes the catalog covers. */
 export declare const BUILTIN_CATALOG_PROVIDERS = 30;

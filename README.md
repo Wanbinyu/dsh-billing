@@ -17,14 +17,14 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
-`v0.6.3` 已使用 DeepSeek Harness `0.1.1-rc.2` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 的兼容分支。
+`v0.6.4` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.3/dsh-billing-community-bundle-0.6.3.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.4/dsh-billing-community-bundle-0.6.4.tgz
 ```
 
 安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。
@@ -50,7 +50,7 @@ npm install ./packages/dsh-billing ./packages/dsh-client-ui-billing
 
 ## 配置价格和额度
 
-DeepSeek 官方示例价格使用 CNY 每 100 万 token：缓存命中 `0.02`、缓存未命中输入 `1`、输出 `2`。实际价格请按你的合同配置；DeepSeek 的峰谷价格可能变化。
+DeepSeek 官方价格有峰谷时段，且可能变化；实际价格请按你的合同或当前官方价格配置。内置 USD 目录包含 `deepseek-v4-flash-vision-exp`，按 `deepseek-v4-flash` 的参考价格计入；图片由供应商折算为输入 token 后计费。
 
 ```yaml
 - id: billing
@@ -110,7 +110,7 @@ node packages/dsh-billing/scripts/generate-catalog.mjs
 
 - 费用是本地参考值，不是发票或强制限流依据。
 - quota 目前按 session 计算，部署级预算暂未实现。
-- 兼容 DeepSeek Harness `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2`；开发依赖固定在 `0.1.1-rc.2`。
+- 兼容 DeepSeek Harness `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2`、`0.1.2-rc.1`；开发依赖固定在 `0.1.2-rc.1`，但 `@deepseek-ai/dsh-client-runtime` 仍使用官方 `next` 发布的 `0.1.1-rc.2`。
 
 ## 链接
 

@@ -1,6 +1,6 @@
 # dsh-billing
 
-Host plugin for DeepSeek Harness: per-model cost accounting and session quota progress. It prices provider-reported token usage into the `billing` session projection, with an **built-in price catalog of 1008 models across 30 providers** (generated from the pi-ai model catalog) as the default fallback.
+Host plugin for DeepSeek Harness: per-model cost accounting and session quota progress. It prices provider-reported token usage into the `billing` session projection, with an **built-in price catalog of 1009 models across 30 providers** (generated from the pi-ai model catalog) as the default fallback.
 
 ## Pricing priority
 
@@ -9,6 +9,8 @@ Host plugin for DeepSeek Harness: per-model cost accounting and session quota pr
 3. **Unpriced** — a model with neither prices at zero and joins `unpricedModels` so the UI warns instead of silently under-billing.
 
 Same model id under different providers keeps separate buckets, so `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash` price independently.
+
+The built-in DeepSeek catalog includes `deepseek-v4-flash-vision-exp` at the same reference rate as `deepseek-v4-flash`; image tokens are counted as input tokens when the provider reports them.
 
 When `currency` is not `USD`, configure every model explicitly. The built-in catalog is not converted and is never applied to a non-USD projection.
 
