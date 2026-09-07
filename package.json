@@ -1,6 +1,6 @@
 {
   "name": "dsh-billing-community-bundle",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Installable DeepSeek Harness bundle for the dsh-billing host projection and client UI",
   "type": "module",
   "main": "./packages/dsh-billing/lib/index.js",
@@ -82,7 +82,7 @@
     "@deepseek-ai/dsh-session-projection": "^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-rc.1"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis": "4.0.2",
     "@deepseek-ai/dsh-attachment": "0.1.2-rc.1",
     "@deepseek-ai/dsh-brand": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-locale": "0.1.2-rc.1",
