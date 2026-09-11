@@ -4,8 +4,8 @@ Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 let react_jsx_runtime = require("react/jsx-runtime");
 let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 
-//#region \0dsh-css:G:\skill\dsh-billing\packages\dsh-client-ui-billing\src\client\BillingBar.module.css.mjs
-const css = ".Xl6qUa_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto}.Xl6qUa_bar{box-sizing:border-box;width:100%;max-width:calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-tip);border-radius:12px;align-items:center;gap:8px;height:36px;margin:0 auto;padding:4px 5px 4px 12px;display:flex}.Xl6qUa_glyph{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex}.Xl6qUa_label{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:24px}.Xl6qUa_costs{flex:none;align-items:center;gap:8px;display:inline-flex}.Xl6qUa_metric{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary);white-space:nowrap;align-items:baseline;gap:4px;font-size:13px;line-height:20px;display:inline-flex}.Xl6qUa_metricLabel{color:var(--dsw-alias-label-secondary);font-size:11px}.Xl6qUa_quota{flex:1;align-items:center;gap:8px;min-width:0;display:flex}.Xl6qUa_quotaTrack{background:var(--dsw-alias-interactive-bg-hover);border-radius:2px;flex:none;width:64px;height:4px;overflow:hidden}.Xl6qUa_quotaFill{background:var(--dsw-alias-state-business-primary);border-radius:2px;height:100%;display:block}.Xl6qUa_quotaFill[data-tone=notice]{filter:saturate(1.35)}.Xl6qUa_quotaFill[data-tone=warning]{background:var(--dsw-alias-state-warning-primary)}.Xl6qUa_quotaFill[data-tone=danger]{background:var(--dsw-alias-state-error-primary,#cf222e)}.Xl6qUa_quotaText{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:20px;overflow:hidden}.Xl6qUa_unpriced{color:var(--dsw-alias-state-warning-primary);flex:none;font-size:12px;line-height:20px}.Xl6qUa_quotaAlert{white-space:nowrap;color:var(--dsw-alias-label-secondary);flex:none;font-size:11px;line-height:20px}.Xl6qUa_quotaAlert[data-tone=warning]{color:var(--dsw-alias-state-warning-primary)}.Xl6qUa_quotaAlert[data-tone=danger]{color:var(--dsw-alias-state-error-primary,#cf222e);font-weight:600}@media (width<=720px){.Xl6qUa_label,.Xl6qUa_quotaText{display:none}.Xl6qUa_bar,.Xl6qUa_costs{gap:6px}}@media (width<=520px){.Xl6qUa_glyph,.Xl6qUa_quotaAlert{display:none}.Xl6qUa_quotaTrack{width:40px}.Xl6qUa_unpriced{text-overflow:ellipsis;white-space:nowrap;max-width:54px;overflow:hidden}}@media (width<=380px){.Xl6qUa_metricLabel,.Xl6qUa_unpriced{display:none}}";
+//#region \0dsh-css:G:\dsh-compat-0911\dsh-billing\packages\dsh-client-ui-billing\src\client\BillingBar.module.css.mjs
+const css = ".mRoMlW_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto}.mRoMlW_bar{box-sizing:border-box;width:100%;max-width:calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-tip);border-radius:12px;align-items:center;gap:8px;height:36px;margin:0 auto;padding:4px 5px 4px 12px;display:flex}.mRoMlW_glyph{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex}.mRoMlW_label{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:24px}.mRoMlW_costs{flex:none;align-items:center;gap:8px;display:inline-flex}.mRoMlW_metric{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary);white-space:nowrap;align-items:baseline;gap:4px;font-size:13px;line-height:20px;display:inline-flex}.mRoMlW_metricLabel{color:var(--dsw-alias-label-secondary);font-size:11px}.mRoMlW_quota{flex:1;align-items:center;gap:8px;min-width:0;display:flex}.mRoMlW_quotaTrack{background:var(--dsw-alias-interactive-bg-hover);border-radius:2px;flex:none;width:64px;height:4px;overflow:hidden}.mRoMlW_quotaFill{background:var(--dsw-alias-state-business-primary);border-radius:2px;height:100%;display:block}.mRoMlW_quotaFill[data-tone=notice]{filter:saturate(1.35)}.mRoMlW_quotaFill[data-tone=warning]{background:var(--dsw-alias-state-warning-primary)}.mRoMlW_quotaFill[data-tone=danger]{background:var(--dsw-alias-state-error-primary,#cf222e)}.mRoMlW_quotaText{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:20px;overflow:hidden}.mRoMlW_unpriced{color:var(--dsw-alias-state-warning-primary);flex:none;font-size:12px;line-height:20px}.mRoMlW_quotaAlert{white-space:nowrap;color:var(--dsw-alias-label-secondary);flex:none;font-size:11px;line-height:20px}.mRoMlW_quotaAlert[data-tone=warning]{color:var(--dsw-alias-state-warning-primary)}.mRoMlW_quotaAlert[data-tone=danger]{color:var(--dsw-alias-state-error-primary,#cf222e);font-weight:600}@media (width<=720px){.mRoMlW_label,.mRoMlW_quotaText{display:none}.mRoMlW_bar,.mRoMlW_costs{gap:6px}}@media (width<=520px){.mRoMlW_glyph,.mRoMlW_quotaAlert{display:none}.mRoMlW_quotaTrack{width:40px}.mRoMlW_unpriced{text-overflow:ellipsis;white-space:nowrap;max-width:54px;overflow:hidden}}@media (width<=380px){.mRoMlW_metricLabel,.mRoMlW_unpriced{display:none}}";
 const tagId = "dsh-billing-community-bundle/BillingBar.module.css";
 if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 	const tag = document.createElement("style");
@@ -15,19 +15,19 @@ if (typeof document !== "undefined" && document.querySelector("style[data-plugin
 	document.head.appendChild(tag);
 }
 var BillingBar_module_css_default = {
-	"bar": "Xl6qUa_bar",
-	"costs": "Xl6qUa_costs",
-	"dock": "Xl6qUa_dock",
-	"glyph": "Xl6qUa_glyph",
-	"label": "Xl6qUa_label",
-	"metric": "Xl6qUa_metric",
-	"metricLabel": "Xl6qUa_metricLabel",
-	"quota": "Xl6qUa_quota",
-	"quotaAlert": "Xl6qUa_quotaAlert",
-	"quotaFill": "Xl6qUa_quotaFill",
-	"quotaText": "Xl6qUa_quotaText",
-	"quotaTrack": "Xl6qUa_quotaTrack",
-	"unpriced": "Xl6qUa_unpriced"
+	"bar": "mRoMlW_bar",
+	"costs": "mRoMlW_costs",
+	"dock": "mRoMlW_dock",
+	"glyph": "mRoMlW_glyph",
+	"label": "mRoMlW_label",
+	"metric": "mRoMlW_metric",
+	"metricLabel": "mRoMlW_metricLabel",
+	"quota": "mRoMlW_quota",
+	"quotaAlert": "mRoMlW_quotaAlert",
+	"quotaFill": "mRoMlW_quotaFill",
+	"quotaText": "mRoMlW_quotaText",
+	"quotaTrack": "mRoMlW_quotaTrack",
+	"unpriced": "mRoMlW_unpriced"
 };
 
 //#endregion

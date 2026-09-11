@@ -76,7 +76,8 @@ function finalUsage(session: Session, usage: TokenUsage, turn: number, step: num
       source: { kind: 'model', provider: 'mock', model: 'mock' },
     }),
     usage,
-  }, { surfaceOp: 'append', sourceEventSeqs: [] })
+    stream: [],
+  }, { surfaceOp: 'append' })
 }
 
 const projected = (ctx: Context, session: Session): BillingProjection => {
@@ -335,7 +336,8 @@ describe('billing projection unit (registry drive)', () => {
         content: [],
         source: { kind: 'model', provider: 'mock', model: 'mock' },
       }),
-    }, { surfaceOp: 'append', sourceEventSeqs: [] })
+      stream: [],
+    }, { surfaceOp: 'append' })
     session.append('step/end', { turn: 1, step: 1 })
     expect(projected(ctx, session).totalCost).toBe(0)
   })

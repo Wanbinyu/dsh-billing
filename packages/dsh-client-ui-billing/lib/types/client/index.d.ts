@@ -7,7 +7,7 @@
  * beyond the locale seat; without a configured price or quota the projection
  * carries no cost and the strip renders nothing.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import { type BillingKey } from './locales.ts';
 declare module '@deepseek-ai/dsh-client-ui-slots' {
     interface LocaleNamespaceMap {

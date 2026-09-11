@@ -41,7 +41,6 @@ const bucketsEmpty = (buckets) => buckets.uncachedInputTokens === 0
     && buckets.outputTokens === 0
     && buckets.cacheReadTokens === 0
     && buckets.cacheWriteTokens === 0;
-/** The usage a chunk or finalized message reports for its step, if any. */
 const usageOf = (event) => event.type === 'assistant/chunk' && event.data.chunk.type === 'usage'
     ? event.data.chunk.usage
     : event.type === 'assistant/message'
@@ -187,7 +186,10 @@ export const billingProjectionDefinition = (resolved) => {
         key: 'billing',
         stateSchema,
         init: () => ({ header: null, buckets: {}, last: null, latestTurn: null }),
-        apply: (state, event) => {
+        apply: (state, incoming) => {
+            // 0.1.5 hosts settle usage on assistant/message; older logs may
+            // additionally contain streaming usage. Both share step deduplication.
+            const event = incoming;
             if (event.type === 'request/header') {
                 const header = { provider: event.data.header.config.provider, model: event.data.header.config.model };
                 if (state.header !== null && state.header.provider === header.provider && state.header.model === header.model) {

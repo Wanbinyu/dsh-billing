@@ -111,7 +111,12 @@ const bucketsEmpty = (buckets: ModelBuckets): boolean =>
   && buckets.cacheWriteTokens === 0
 
 /** The usage a chunk or finalized message reports for its step, if any. */
-const usageOf = (event: SessionEvent): TokenUsage | undefined =>
+interface LegacyUsageEvent {
+  type: 'assistant/chunk'
+  data: { turn: number; step: number; chunk: { type: string; usage?: TokenUsage } }
+}
+
+const usageOf = (event: SessionEvent | LegacyUsageEvent): TokenUsage | undefined =>
   event.type === 'assistant/chunk' && event.data.chunk.type === 'usage'
     ? event.data.chunk.usage
     : event.type === 'assistant/message'
@@ -291,7 +296,10 @@ export const billingProjectionDefinition = (
     key: 'billing',
     stateSchema,
     init: () => ({ header: null, buckets: {}, last: null, latestTurn: null }),
-    apply: (state, event) => {
+    apply: (state, incoming) => {
+      // 0.1.5 hosts settle usage on assistant/message; older logs may
+      // additionally contain streaming usage. Both share step deduplication.
+      const event = incoming as SessionEvent | LegacyUsageEvent
       if (event.type === 'request/header') {
         const header = { provider: event.data.header.config.provider, model: event.data.header.config.model }
         if (state.header !== null && state.header.provider === header.provider && state.header.model === header.model) {
