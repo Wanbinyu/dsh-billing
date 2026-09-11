@@ -1,6 +1,6 @@
 # dsh-billing
 
-> **源码兼容性修复（2026-09-11，尚未发布）**：当前源码已适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 基线回归。Web 插件不再请求已移除的 `@deepseek-ai/dsh-client-runtime/client`；Companion 改用独立 Store 引擎，并兼容新版等待交互状态；计费投影兼容新版最终用量事件。本次没有发布 npm 包、Release 或新安装包。下面的 Release 下载链接仍是旧构建，不能用于验证新版宿主修复；使用 `0.1.5` 时请从当前源码执行 `npm ci && npm run verify`，再本地 `npm pack` 后安装。不要把源码兼容性当成旧下载包的兼容性。
+> **v0.6.6 兼容性修复**：适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 回归。修复旧 runtime 模块缺失问题；下方下载链接指向本次修复包。其他宿主版本请先验证兼容性。
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -20,14 +20,14 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
-`v0.6.5` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
+`v0.6.6` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.5/dsh-billing-community-bundle-0.6.5.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.6/dsh-billing-community-bundle-0.6.6.tgz
 ```
 
 安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。
