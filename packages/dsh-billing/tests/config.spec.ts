@@ -56,9 +56,9 @@ describe('billing plugin config', () => {
       chunk: { type: 'usage', usage: { inputTokens: 1_000_000, outputTokens: 0 } },
     })
     const value = ctx.sessionProjections.snapshot(session).values.billing
-    // deepseek/deepseek-v4-flash exists in the generated catalog
+    // First-party deepseek-v4-flash uses the official schedule, not the stale catalog card.
     expect(value).toMatchObject({ currency: 'USD' })
-    expect(value!.totalCost).toBeGreaterThan(0)
+    expect([0.15, 0.3, 0.225, 0.45]).toContain(value!.totalCost)
     expect(value!.unpricedModels).toEqual([])
   })
 

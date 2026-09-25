@@ -21,6 +21,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import type { BillingModelPrice, BillingProjection } from './types.ts'
 import type { CatalogEntry } from './catalog.ts'
+import { officialSliceKey, priceForSliceKey } from './deepseek-rates.ts'
 
 /** Fallback identity for usage with no preceding `request/header` event. */
 export const UNKNOWN_MODEL = '(unknown)'
@@ -43,6 +44,12 @@ interface ModelBuckets {
 interface Bucket extends ModelBuckets {
   provider: string
   model: string
+  /**
+   * First-party DeepSeek usage split by rate card. Absent for every other
+   * route. View-time pricing reads these slices so a later price-table edit
+   * does not require another fold.
+   */
+  slices?: Record<string, ModelBuckets>
 }
 
 /** The last usage sample's step coordinates, for same-step replacement. */
@@ -53,6 +60,8 @@ interface UsageSample {
   provider: string
   model: string
   buckets: ModelBuckets
+  /** Rate-card slice this sample was added to; null outside the official schedule. */
+  sliceKey: string | null
 }
 
 /** Token buckets for the newest turn only, used by the compact per-turn UI. */
@@ -125,6 +134,27 @@ const usageOf = (event: SessionEvent | LegacyUsageEvent): TokenUsage | undefined
 
 const keyOf = (provider: string, model: string): string => provider + KEY_SEPARATOR + model
 
+/** Signed token addition. A zero result drops that slice key. */
+const applySlice = (
+  slices: Record<string, ModelBuckets> | undefined,
+  sliceKey: string | null,
+  buckets: ModelBuckets,
+  sign: 1 | -1,
+): Record<string, ModelBuckets> | undefined => {
+  if (sliceKey === null) return slices
+  const previous = slices?.[sliceKey] ?? zeroBuckets()
+  const nextSlice: ModelBuckets = {
+    uncachedInputTokens: previous.uncachedInputTokens + sign * buckets.uncachedInputTokens,
+    outputTokens: previous.outputTokens + sign * buckets.outputTokens,
+    cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
+    cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
+  }
+  const nextSlices = { ...slices }
+  if (bucketsEmpty(nextSlice)) delete nextSlices[sliceKey]
+  else nextSlices[sliceKey] = nextSlice
+  return Object.keys(nextSlices).length === 0 ? undefined : nextSlices
+}
+
 /**
  * Add `buckets` (signed) to the bucket's running total without mutating
  * `state` — the caller spreads the result into the next state.
@@ -136,8 +166,10 @@ const addBuckets = (
   model: string,
   buckets: ModelBuckets,
   sign: 1 | -1,
+  sliceKey: string | null,
 ): BillingState => {
   const previous = state.buckets[key] ?? { provider, model, ...zeroBuckets() }
+  const slices = applySlice(previous.slices, sliceKey, buckets, sign)
   const next: Bucket = {
     provider,
     model,
@@ -145,9 +177,10 @@ const addBuckets = (
     outputTokens: previous.outputTokens + sign * buckets.outputTokens,
     cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
     cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
+    ...slices === undefined ? {} : { slices },
   }
   const nextBuckets = { ...state.buckets }
-  if (bucketsEmpty(next)) delete nextBuckets[key]
+  if (bucketsEmpty(next) && slices === undefined) delete nextBuckets[key]
   else nextBuckets[key] = next
   return { ...state, buckets: nextBuckets }
 }
@@ -161,11 +194,13 @@ const addLatestTurnBuckets = (
   model: string,
   buckets: ModelBuckets,
   sign: 1 | -1,
+  sliceKey: string | null,
 ): BillingState => {
   const current = state.latestTurn?.turn === turn
     ? state.latestTurn
     : { turn, buckets: {} }
   const previous = current.buckets[key] ?? { provider, model, ...zeroBuckets() }
+  const slices = applySlice(previous.slices, sliceKey, buckets, sign)
   const next: Bucket = {
     provider,
     model,
@@ -173,9 +208,10 @@ const addLatestTurnBuckets = (
     outputTokens: previous.outputTokens + sign * buckets.outputTokens,
     cacheReadTokens: previous.cacheReadTokens + sign * buckets.cacheReadTokens,
     cacheWriteTokens: previous.cacheWriteTokens + sign * buckets.cacheWriteTokens,
+    ...slices === undefined ? {} : { slices },
   }
   const nextBuckets = { ...current.buckets }
-  if (bucketsEmpty(next)) delete nextBuckets[key]
+  if (bucketsEmpty(next) && slices === undefined) delete nextBuckets[key]
   else nextBuckets[key] = next
   return {
     ...state,
@@ -197,6 +233,35 @@ const costOf = (price: BillingModelPrice | CatalogEntry | undefined, buckets: Mo
       + price.output * buckets.outputTokens
       + (price.cacheRead ?? 0) * buckets.cacheReadTokens
       + (price.cacheWrite ?? 0) * buckets.cacheWriteTokens) / 1e6
+
+/**
+ * Known cost of one bucket. A Config override is a flat rate for the whole
+ * bucket. Otherwise a first-party slice map is priced card by card, and every
+ * other route uses the USD catalog.
+ */
+const knownCost = (
+  prices: Record<string, BillingModelPrice>,
+  catalog: Record<string, Record<string, CatalogEntry>>,
+  currency: string,
+  officialDeepSeek: boolean,
+  bucket: Bucket,
+): { cost: number; priced: boolean } => {
+  const override = prices[`${bucket.provider}/${bucket.model}`] ?? prices[bucket.model]
+  if (override !== undefined) return { cost: costOf(override, bucket), priced: true }
+  if (officialDeepSeek && currency === BUILTIN_CATALOG_CURRENCY && bucket.slices !== undefined) {
+    let cost = 0
+    for (const [sliceKey, slice] of Object.entries(bucket.slices)) {
+      const card = priceForSliceKey(sliceKey)
+      if (card === undefined) return { cost: 0, priced: false }
+      cost += costOf(card, slice)
+    }
+    return { cost, priced: true }
+  }
+  const catalogPrice = resolvePrice(prices, catalog, currency, bucket.provider, bucket.model)
+  return catalogPrice === undefined
+    ? { cost: 0, priced: false }
+    : { cost: costOf(catalogPrice, bucket), priced: true }
+}
 
 /**
  * Resolve one bucket's price. A provider/model override wins first, then the
@@ -230,6 +295,8 @@ export const billingProjectionDefinition = (
     catalog: Record<string, Record<string, CatalogEntry>>
     currency: string
     quotaLimit: number | undefined
+    /** Price `deepseek` / `deepseek-official` from the first-party schedule. */
+    officialDeepSeek?: boolean
   },
 ): BillingProjectionDefinition => {
   const modelBucketsSchema = z.object({
@@ -241,6 +308,7 @@ export const billingProjectionDefinition = (
   const bucketSchema = modelBucketsSchema.extend({
     provider: z.string(),
     model: z.string(),
+    slices: z.record(z.string(), modelBucketsSchema).optional(),
   }).strict()
   const stateSchema = z.object({
     header: z.object({
@@ -255,6 +323,7 @@ export const billingProjectionDefinition = (
       provider: z.string(),
       model: z.string(),
       buckets: modelBucketsSchema,
+      sliceKey: z.string().nullable(),
     }).strict().nullable(),
     latestTurn: z.object({
       turn: z.number().int().positive(),
@@ -322,14 +391,19 @@ export const billingProjectionDefinition = (
         : null
       if (previous !== null && previous.key === key && bucketsEqual(previous.buckets, buckets)) return state
 
+      const eventTime = 'time' in event && typeof event.time === 'number' ? event.time : 0
+      const sliceKey = resolved.officialDeepSeek === true
+        ? officialSliceKey(provider, model, eventTime)
+        : null
+
       let next = state
       if (previous !== null) {
-        next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1)
-        next = addLatestTurnBuckets(next, turn, previous.key, previous.provider, previous.model, previous.buckets, -1)
+        next = addBuckets(next, previous.key, previous.provider, previous.model, previous.buckets, -1, previous.sliceKey)
+        next = addLatestTurnBuckets(next, turn, previous.key, previous.provider, previous.model, previous.buckets, -1, previous.sliceKey)
       }
-      next = addBuckets(next, key, provider, model, buckets, 1)
-      next = addLatestTurnBuckets(next, turn, key, provider, model, buckets, 1)
-      next = { ...next, last: { turn, step, key, provider, model, buckets } }
+      next = addBuckets(next, key, provider, model, buckets, 1, sliceKey)
+      next = addLatestTurnBuckets(next, turn, key, provider, model, buckets, 1, sliceKey)
+      next = { ...next, last: { turn, step, key, provider, model, buckets, sliceKey } }
       return next
     },
     wire: {
@@ -338,9 +412,15 @@ export const billingProjectionDefinition = (
       const grouped = new Map<string, { provider: string; model: string; cost: number } & ModelBuckets>()
       const unpriced = new Set<string>()
       for (const bucket of Object.values(state.buckets)) {
-        const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model)
-        if (price === undefined) unpriced.add(bucket.model)
-        const cost = roundMoney(costOf(price, bucket))
+        const priced = knownCost(
+          resolved.prices,
+          resolved.catalog,
+          resolved.currency,
+          resolved.officialDeepSeek === true,
+          bucket,
+        )
+        if (!priced.priced) unpriced.add(bucket.model)
+        const cost = roundMoney(priced.cost)
         const key = keyOf(bucket.provider, bucket.model)
         const row = grouped.get(key)
         if (row === undefined) {
@@ -378,13 +458,19 @@ export const billingProjectionDefinition = (
         const unpriced = new Set<string>()
         let cost = 0
         for (const bucket of Object.values(state.latestTurn.buckets)) {
-          const price = resolvePrice(resolved.prices, resolved.catalog, resolved.currency, bucket.provider, bucket.model)
-          cost += costOf(price, bucket)
+          const priced = knownCost(
+            resolved.prices,
+            resolved.catalog,
+            resolved.currency,
+            resolved.officialDeepSeek === true,
+            bucket,
+          )
+          cost += priced.cost
           totals.uncachedInputTokens += bucket.uncachedInputTokens
           totals.outputTokens += bucket.outputTokens
           totals.cacheReadTokens += bucket.cacheReadTokens
           totals.cacheWriteTokens += bucket.cacheWriteTokens
-          if (price === undefined) unpriced.add(bucket.model)
+          if (!priced.priced) unpriced.add(bucket.model)
         }
         return {
           turn: state.latestTurn.turn,
@@ -404,6 +490,6 @@ export const billingProjectionDefinition = (
         return projection
       },
     },
-    stateVersion: 5,
+    stateVersion: 6,
   }
 }

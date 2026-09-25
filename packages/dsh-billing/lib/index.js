@@ -83,5 +83,6 @@ export function apply(ctx, config = { models: {}, currency: 'USD' }) {
         catalog: BUILTIN_CATALOG,
         currency,
         quotaLimit: config.quota?.limit,
+        officialDeepSeek: true,
     }));
 }

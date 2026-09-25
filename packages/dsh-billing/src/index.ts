@@ -94,5 +94,6 @@ export function apply(ctx: Context, config: BillingConfig = { models: {}, curren
     catalog: BUILTIN_CATALOG,
     currency,
     quotaLimit: config.quota?.limit,
+    officialDeepSeek: true,
   }))
 }

@@ -30,6 +30,12 @@ interface ModelBuckets {
 interface Bucket extends ModelBuckets {
     provider: string;
     model: string;
+    /**
+     * First-party DeepSeek usage split by rate card. Absent for every other
+     * route. View-time pricing reads these slices so a later price-table edit
+     * does not require another fold.
+     */
+    slices?: Record<string, ModelBuckets>;
 }
 /** The last usage sample's step coordinates, for same-step replacement. */
 interface UsageSample {
@@ -39,6 +45,8 @@ interface UsageSample {
     provider: string;
     model: string;
     buckets: ModelBuckets;
+    /** Rate-card slice this sample was added to; null outside the official schedule. */
+    sliceKey: string | null;
 }
 /** Token buckets for the newest turn only, used by the compact per-turn UI. */
 interface LatestTurnState {
@@ -82,5 +90,7 @@ export declare const billingProjectionDefinition: (resolved: {
     catalog: Record<string, Record<string, CatalogEntry>>;
     currency: string;
     quotaLimit: number | undefined;
+    /** Price `deepseek` / `deepseek-official` from the first-party schedule. */
+    officialDeepSeek?: boolean;
 }) => BillingProjectionDefinition;
 export {};

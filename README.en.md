@@ -1,6 +1,6 @@
 # dsh-billing
 
-> **v0.6.6 compatibility update**: verified against Harness `0.1.5-rc.2` and the `0.1.1-rc.2` baseline. Web plugins no longer request the retired runtime module. Download links below target the fixed archive; other host versions require verification.
+> **v0.6.7 price update**: official `deepseek` and `deepseek-official` routes use the DeepSeek USD schedule at the call timestamp. `deepseek-flash` and the retired Flash names use the V4.1-Flash card; `deepseek-v4-pro` keeps the Pro card. Host compatibility remains the Harness `0.1.5-rc.2` verification.
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -20,14 +20,14 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
-`v0.6.6` is type-checked, tested, fully built, and package-validated against DeepSeek Harness `0.1.2-rc.1` while retaining compatibility with `0.1.0-rc.6` through `rc.8` and `0.1.1-rc.1` through `rc.2`.
+`v0.6.7` updates the official rate card on top of the `v0.6.6` Harness `0.1.5-rc.2` compatibility fix.
 
 ## Install As A Bundle
 
 The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.6/dsh-billing-community-bundle-0.6.6.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.7/dsh-billing-community-bundle-0.6.7.tgz
 ```
 
 Restart dsh after installation. One `billing` composition entry enables both the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.
@@ -53,25 +53,21 @@ Then add this to the profile's `cordis.patch.yml`:
 
 ## Configure Pricing And Quota
 
-DeepSeek uses peak/off-peak pricing, and prices may change over time. Configure your contract or current official rates when you need an exact bill. The built-in USD catalog includes `deepseek-v4-flash-vision-exp` at the same reference rate as `deepseek-v4-flash`; provider-reported image tokens are billed as input tokens.
+With `models` left empty, `deepseek-flash`, `deepseek-v4-flash`, `deepseek-v4-flash-0731`, `deepseek-v4-flash-vision-exp`, and `deepseek-v4-pro` on the `deepseek` and `deepseek-official` providers use the official USD card. Each usage sample is frozen at its own timestamp. From 2026-09-10 04:00 UTC the Flash family uses the V4.1-Flash card and Pro keeps its own card. Peak is Monday–Friday 01:00–04:00 and 06:00–10:00 UTC. Chinese public holidays in 2026 are off-peak for the whole China calendar day. Cache writes use the cache-miss rate. Provider-reported image tokens are already inside the input usage.
+
+An explicit `models` entry replaces that schedule with one flat rate. Every other provider still uses the built-in USD catalog.
 
 ```yaml
 - id: billing
   config:
-    models:
-      deepseek/deepseek-v4-flash:
-        input: 1
-        output: 2
-        cacheRead: 0.02
-        cacheWrite: 0
-    currency: CNY
+    currency: USD
     quota:
       limit: 5
 ```
 
 Exact `provider/model` keys, such as `openrouter/deepseek-v4-flash`, take precedence. A model-only key such as `deepseek-v4-flash` remains supported as a fallback for every provider. When overriding the `billing` row after the bundle inserted it, Harness replaces the whole `config` block. Restate every field you want to keep.
 
-The built-in catalog is USD-only. When using CNY or another currency, configure every model explicitly. A model without a price is still counted, but joins `unpricedModels` and sets `quota.estimated` to `true`. Its cost is excluded rather than fabricated, so quota progress containing unpriced usage must not be treated as a complete bill.
+The built-in catalog and the official schedule are USD-only. When using CNY or another currency, configure every model explicitly. A model without a price is still counted, but joins `unpricedModels` and sets `quota.estimated` to `true`. Its cost is excluded rather than fabricated, so quota progress containing unpriced usage must not be treated as a complete bill.
 
 ## Projection
 

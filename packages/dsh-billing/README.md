@@ -4,15 +4,14 @@ Host plugin for DeepSeek Harness: per-model cost accounting and session quota pr
 
 ## Pricing priority
 
-1. **Plugin Config** — `models` keyed by model id (per-1M prices in your currency) wins over everything.
-2. **Built-in catalog** — `provider/model` prices in USD per 1M tokens, shipped with the package.
-3. **Unpriced** — a model with neither prices at zero and joins `unpricedModels` so the UI warns instead of silently under-billing.
+1. **Plugin Config** — `models` keyed by `provider/model` or model id (per-1M prices in your currency) wins over everything and is a single flat rate.
+2. **Official DeepSeek schedule** — `deepseek` and `deepseek-official` routes for `deepseek-flash`, the retired Flash ids, and `deepseek-v4-pro`, USD per 1M tokens, chosen from the call timestamp. See `src/deepseek-rates.ts`.
+3. **Built-in catalog** — other `provider/model` prices in USD per 1M tokens, shipped with the package.
+4. **Unpriced** — a model with neither prices at zero and joins `unpricedModels` so the UI warns instead of silently under-billing.
 
-Same model id under different providers keeps separate buckets, so `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash` price independently.
+Same model id under different providers keeps separate buckets, so `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash` price independently. The OpenRouter row stays on the generated catalog.
 
-The built-in DeepSeek catalog includes `deepseek-v4-flash-vision-exp` at the same reference rate as `deepseek-v4-flash`; image tokens are counted as input tokens when the provider reports them.
-
-When `currency` is not `USD`, configure every model explicitly. The built-in catalog is not converted and is never applied to a non-USD projection.
+When `currency` is not `USD`, configure every model explicitly. The built-in catalog and the official schedule are not converted and are never applied to a non-USD projection.
 
 ## Configuration
 
@@ -20,16 +19,12 @@ When `currency` is not `USD`, configure every model explicitly. The built-in cat
 - id: billing
   name: 'dsh-billing'
   config:
-    models:
-      deepseek-v4-flash:
-        input: 1        # currency per 1M uncached input tokens
-        output: 2       # currency per 1M output tokens
-        cacheRead: 0.02 # currency per 1M cache-read tokens (absent = 0)
-        cacheWrite: 0
-    currency: CNY
+    currency: USD
     quota:
       limit: 5          # optional per-session cost cap
 ```
+
+Leave `models` empty to use the official DeepSeek schedule. A model entry is a flat override in `currency` and replaces peak/off-peak for that id.
 
 ## Regenerating the catalog
 

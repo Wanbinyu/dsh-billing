@@ -1,6 +1,6 @@
 # dsh-billing
 
-> **v0.6.6 兼容性修复**：适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 回归。修复旧 runtime 模块缺失问题；下方下载链接指向本次修复包。其他宿主版本请先验证兼容性。
+> **v0.6.7 价格更新**：官方 `deepseek` / `deepseek-official` 路由按调用时刻使用 DeepSeek 价目。`deepseek-flash` 与仍被路由的旧 Flash 名字走 V4.1-Flash 价，`deepseek-v4-pro` 继续走 Pro 价。兼容性仍以 Harness `0.1.5-rc.2` 验证为准。
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -20,14 +20,14 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
-`v0.6.6` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、完整构建和打包验证，并保留 `0.1.0-rc.6` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
+`v0.6.7` 在 `v0.6.6` 的 Harness `0.1.5-rc.2` 兼容修复上更新了官方价目。
 
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.6/dsh-billing-community-bundle-0.6.6.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.7/dsh-billing-community-bundle-0.6.7.tgz
 ```
 
 安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。
@@ -53,25 +53,21 @@ npm install ./packages/dsh-billing ./packages/dsh-client-ui-billing
 
 ## 配置价格和额度
 
-DeepSeek 官方价格有峰谷时段，且可能变化；实际价格请按你的合同或当前官方价格配置。内置 USD 目录包含 `deepseek-v4-flash-vision-exp`，按 `deepseek-v4-flash` 的参考价格计入；图片由供应商折算为输入 token 后计费。
+留空 `models` 时，`deepseek` 和 `deepseek-official` 上的 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-flash-0731`、`deepseek-v4-flash-vision-exp`、`deepseek-v4-pro` 按官方 USD 价目计费。价格按每条用量的时间戳冻结：2026-09-10 04:00 UTC 起 Flash 家族使用 V4.1-Flash 价，Pro 保持自己的价。高峰是周一到周五 UTC 01:00–04:00 和 06:00–10:00，2026 年中国法定节假日全天按空闲价。缓存写入按未命中输入价计。图片 token 由供应商折进输入用量后，随输入一起计价。
+
+显式 `models` 会覆盖这个价目，并且是单一价格，不再区分峰谷。其他供应商仍走内置 USD 目录。
 
 ```yaml
 - id: billing
   config:
-    models:
-      deepseek/deepseek-v4-flash:
-        input: 1
-        output: 2
-        cacheRead: 0.02
-        cacheWrite: 0
-    currency: CNY
+    currency: USD
     quota:
       limit: 5
 ```
 
 价格键优先使用精确的 `provider/model`，例如 `openrouter/deepseek-v4-flash`；只写模型 ID（例如 `deepseek-v4-flash`）仍然有效，并作为所有 provider 的兼容回退。如果在 bundle 已插入后修改 `billing` 行，Harness 的 patch 会替换整段 `config`，因此需要保留所有希望继续使用的配置字段。
 
-内置目录只使用 USD。使用 CNY 或其他货币时，请为每个模型显式配置价格；没有价格的模型仍会统计 token，但会进入 `unpricedModels`。它们不会伪造费用，`quota.estimated` 会变为 `true`，表示额度进度只包含已知价格，不能当作完整账单。
+内置目录和官方价目都只使用 USD。使用 CNY 或其他货币时，请为每个模型显式配置价格；没有价格的模型仍会统计 token，但会进入 `unpricedModels`。它们不会伪造费用，`quota.estimated` 会变为 `true`，表示额度进度只包含已知价格，不能当作完整账单。
 
 ## Projection
 
