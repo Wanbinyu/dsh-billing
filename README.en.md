@@ -1,6 +1,6 @@
 # dsh-billing
 
-> **v0.6.7 price update**: official `deepseek` and `deepseek-official` routes use the DeepSeek USD schedule at the call timestamp. `deepseek-flash` and the retired Flash names use the V4.1-Flash card; `deepseek-v4-pro` keeps the Pro card. Host compatibility remains the Harness `0.1.5-rc.2` verification.
+> **v0.6.8 host update**: Typechecked and tested against Harness `0.2.1-alpha.3`. Peer ranges also accept `0.2.0-rc.2`, `0.1.5-rc.2`, and the `0.1.1-rc.2` baseline. The official DeepSeek price card is unchanged from v0.6.7.
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -20,14 +20,14 @@ Session billing and quota plugins for [DeepSeek Harness](https://github.com/deep
 
 The host owns pricing and the projection; the browser renders the host-computed projection. The installable root bundle exports both the host and Web client entry points, so GitHub installation does not depend on separately published internal packages. The same model ID under different providers is tracked independently, for example `deepseek/deepseek-v4-flash` and `openrouter/deepseek-v4-flash`.
 
-`v0.6.7` updates the official rate card on top of the `v0.6.6` Harness `0.1.5-rc.2` compatibility fix.
+`v0.6.8` keeps the v0.6.7 official rate card and adapts the installable bundle to Harness `0.2.1-alpha.3`.
 
 ## Install As A Bundle
 
 The repository root provides a bundle declaration and both runtime packages. Add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.7/dsh-billing-community-bundle-0.6.7.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.8/dsh-billing-community-bundle-0.6.8.tgz
 ```
 
 Restart dsh after installation. One `billing` composition entry enables both the host projection and Web cost strip. Pricing uses explicit configuration first, then the built-in USD model catalog.

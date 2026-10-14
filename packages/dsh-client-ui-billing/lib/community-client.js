@@ -1,8 +1,36 @@
 window.__ModuleLoader__.load({ id: "dsh-billing-community-bundle", factory: (require) => {
 var module = { exports: {} }; var exports = module.exports;
 Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+//#region \0rolldown/runtime.js
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+	if (from && typeof from === "object" || typeof from === "function") {
+		for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
+			key = keys[i];
+			if (!__hasOwnProp.call(to, key) && key !== except) {
+				__defProp(to, key, {
+					get: ((k) => from[k]).bind(null, key),
+					enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
+				});
+			}
+		}
+	}
+	return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+	value: mod,
+	enumerable: true
+}) : target, mod));
+
+//#endregion
 let react_jsx_runtime = require("react/jsx-runtime");
 let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+_deepseek_ai_dsh_client_ui_primitives = __toESM(_deepseek_ai_dsh_client_ui_primitives);
 
 //#region \0dsh-css:G:\dsh-compat-0911\dsh-billing\packages\dsh-client-ui-billing\src\client\BillingBar.module.css.mjs
 const css = ".mRoMlW_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto}.mRoMlW_bar{box-sizing:border-box;width:100%;max-width:calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-tip);border-radius:12px;align-items:center;gap:8px;height:36px;margin:0 auto;padding:4px 5px 4px 12px;display:flex}.mRoMlW_glyph{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex}.mRoMlW_label{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:24px}.mRoMlW_costs{flex:none;align-items:center;gap:8px;display:inline-flex}.mRoMlW_metric{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary);white-space:nowrap;align-items:baseline;gap:4px;font-size:13px;line-height:20px;display:inline-flex}.mRoMlW_metricLabel{color:var(--dsw-alias-label-secondary);font-size:11px}.mRoMlW_quota{flex:1;align-items:center;gap:8px;min-width:0;display:flex}.mRoMlW_quotaTrack{background:var(--dsw-alias-interactive-bg-hover);border-radius:2px;flex:none;width:64px;height:4px;overflow:hidden}.mRoMlW_quotaFill{background:var(--dsw-alias-state-business-primary);border-radius:2px;height:100%;display:block}.mRoMlW_quotaFill[data-tone=notice]{filter:saturate(1.35)}.mRoMlW_quotaFill[data-tone=warning]{background:var(--dsw-alias-state-warning-primary)}.mRoMlW_quotaFill[data-tone=danger]{background:var(--dsw-alias-state-error-primary,#cf222e)}.mRoMlW_quotaText{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:20px;overflow:hidden}.mRoMlW_unpriced{color:var(--dsw-alias-state-warning-primary);flex:none;font-size:12px;line-height:20px}.mRoMlW_quotaAlert{white-space:nowrap;color:var(--dsw-alias-label-secondary);flex:none;font-size:11px;line-height:20px}.mRoMlW_quotaAlert[data-tone=warning]{color:var(--dsw-alias-state-warning-primary)}.mRoMlW_quotaAlert[data-tone=danger]{color:var(--dsw-alias-state-error-primary,#cf222e);font-weight:600}@media (width<=720px){.mRoMlW_label,.mRoMlW_quotaText{display:none}.mRoMlW_bar,.mRoMlW_costs{gap:6px}}@media (width<=520px){.mRoMlW_glyph,.mRoMlW_quotaAlert{display:none}.mRoMlW_quotaTrack{width:40px}.mRoMlW_unpriced{text-overflow:ellipsis;white-space:nowrap;max-width:54px;overflow:hidden}}@media (width<=380px){.mRoMlW_metricLabel,.mRoMlW_unpriced{display:none}}";
@@ -31,6 +59,28 @@ var BillingBar_module_css_default = {
 };
 
 //#endregion
+//#region lib/types/client/hostIcon.js
+const icons = _deepseek_ai_dsh_client_ui_primitives;
+function lookup(name) {
+	try {
+		return icons[name];
+	} catch {
+		return;
+	}
+}
+/**
+* Pick the Harness 0.2 icon, then the 0.1 name.
+* The primitives package stays external, so one client bundle can load on both hosts.
+*/
+function hostIcon(modern, legacy) {
+	const Icon = lookup(modern) ?? lookup(legacy);
+	if (Icon !== void 0) return Icon;
+	return function HostIconFallback() {
+		return null;
+	};
+}
+
+//#endregion
 //#region lib/types/client/quota.js
 /** Stable quota thresholds shared by the fill color and the visible warning. */
 function quotaTone(percent) {
@@ -42,6 +92,7 @@ function quotaTone(percent) {
 
 //#endregion
 //#region lib/types/client/BillingBar.js
+const IconDataOutline = hostIcon("IconDataOutlineMedium", "IconDataOutline16");
 /** Format one money figure in the projection's own currency, up to micro-units. */
 function formatMoney(currency, value) {
 	return new Intl.NumberFormat(void 0, {
@@ -81,7 +132,7 @@ function BillingBar({ billing, t }) {
 			children: [
 				(0, react_jsx_runtime.jsx)("span", {
 					className: BillingBar_module_css_default.glyph,
-					children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDataOutline16, { size: 14 })
+					children: (0, react_jsx_runtime.jsx)(IconDataOutline, { size: 14 })
 				}),
 				(0, react_jsx_runtime.jsx)("span", {
 					className: BillingBar_module_css_default.label,

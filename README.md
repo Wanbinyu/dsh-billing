@@ -1,6 +1,6 @@
 # dsh-billing
 
-> **v0.6.7 价格更新**：官方 `deepseek` / `deepseek-official` 路由按调用时刻使用 DeepSeek 价目。`deepseek-flash` 与仍被路由的旧 Flash 名字走 V4.1-Flash 价，`deepseek-v4-pro` 继续走 Pro 价。兼容性仍以 Harness `0.1.5-rc.2` 验证为准。
+> **v0.6.8 宿主适配**：已对 Harness `0.2.1-alpha.3` 完成类型检查和测试。Peer 范围同时接受 `0.2.0-rc.2`、`0.1.5-rc.2` 和 `0.1.1-rc.2`。 官方 DeepSeek 价目仍沿用 v0.6.7。
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -20,14 +20,14 @@
 
 host 侧负责计价和 projection，浏览器侧从 host 已计算的 projection 渲染界面。可安装的根 bundle 同时导出 host 与 Web client 入口，因此从 GitHub 安装不依赖另外发布两个内部包。相同模型 ID 在不同 provider 下会分开统计，例如 `deepseek/deepseek-v4-flash` 和 `openrouter/deepseek-v4-flash`。
 
-`v0.6.7` 在 `v0.6.6` 的 Harness `0.1.5-rc.2` 兼容修复上更新了官方价目。
+`v0.6.8` 保持 v0.6.7 的官方价目，并把安装包适配到 Harness `0.2.1-alpha.3`。
 
 ## 作为 bundle 安装
 
 仓库根目录的 bundle 包含 `dsh.bundle` 声明和两个运行时包。安装到 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.7/dsh-billing-community-bundle-0.6.7.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-billing/releases/download/v0.6.8/dsh-billing-community-bundle-0.6.8.tgz
 ```
 
 安装后重启 dsh。bundle 通过一个 `billing` 配置条目同时启用 host projection 和 Web 费用条，价格优先使用配置，其次使用内置 USD 模型目录。

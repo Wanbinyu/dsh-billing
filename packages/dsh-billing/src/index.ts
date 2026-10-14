@@ -44,7 +44,7 @@ function normalizeCurrency(value: string): string {
  * tokens. The quota limit is strictly positive because the projection reports
  * a percentage of that limit.
  */
-export const Config: z<BillingConfig> = z.object({
+export const Config = z.object({
   models: z.dict(z.object({
     input: z.number().min(0),
     output: z.number().min(0),
@@ -55,7 +55,7 @@ export const Config: z<BillingConfig> = z.object({
   // Schemastery exposes an inclusive minimum; the smallest positive finite
   // number gives this field the intended strictly-positive contract.
   quota: z.object({ limit: z.number().min(Number.MIN_VALUE) }),
-})
+}) as unknown as z<BillingConfig>
 
 /** Reject stale or misspelled keys before defaults can hide them. */
 function validateConfigKeys(config: BillingConfig): void {

@@ -8,10 +8,12 @@
  */
 
 import type { BillingProjection } from 'dsh-billing/client'
-import { IconDataOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './BillingBar.module.css'
+import { hostIcon } from './hostIcon.ts'
 import { quotaTone } from './quota.js'
+
+const IconDataOutline = hostIcon('IconDataOutlineMedium', 'IconDataOutline16')
 
 export interface BillingBarProps {
   /** The session's projected billing value; undefined = capability absent or loading, null = not registered. */
@@ -56,7 +58,7 @@ export function BillingBar({ billing, t }: BillingBarProps & PropsLocale<'billin
   return (
     <div className={css.dock} data-billing-bar title={details}>
       <div className={css.bar} role="status" aria-label={t('aria.bar')}>
-        <span className={css.glyph}><IconDataOutline16 size={14} /></span>
+        <span className={css.glyph}><IconDataOutline size={14} /></span>
         <span className={css.label}>{t('label')}</span>
         <span className={css.costs}>
           {latest !== undefined && (
